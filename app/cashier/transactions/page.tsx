@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { formatDateTime, formatPeso } from "@/lib/utils";
+import { formatDateTime, formatPeso, paymentMethodLabel } from "@/lib/utils";
 import ReceiptModal from "@/components/ReceiptModal";
 import CancelOrderModal from "@/components/CancelOrderModal";
 import type { Order } from "@/lib/types";
@@ -167,8 +167,8 @@ export default function CashierTransactionsPage() {
                   <td className="px-4 py-3 text-char-700/70">
                     {o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items
                   </td>
-                  <td className="px-4 py-3 capitalize text-char-700/70">
-                    {o.payment_method ?? "—"}
+                  <td className="px-4 py-3 text-char-700/70">
+                    {paymentMethodLabel(o.payment_method)}
                   </td>
                   <td className="px-4 py-3">
                     <span

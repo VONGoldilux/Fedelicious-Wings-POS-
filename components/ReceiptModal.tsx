@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDateTime, formatPeso } from "@/lib/utils";
+import { formatDateTime, formatPeso, paymentMethodLabel } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
 const ORDER_TYPE_LABEL: Record<string, string> = {
@@ -78,6 +78,12 @@ export default function ReceiptModal({
               <span>−{formatPeso(order.discount_amount)}</span>
             </div>
           )}
+          {order.senior_pwd_discount_total > 0 && (
+            <div className="flex justify-between text-green-700">
+              <span>Senior/PWD discount (20%)</span>
+              <span>−{formatPeso(order.senior_pwd_discount_total)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-base font-semibold text-char-900">
             <span>Total</span>
             <span>{formatPeso(order.total)}</span>
@@ -85,7 +91,7 @@ export default function ReceiptModal({
           {order.payment_method && (
             <div className="flex justify-between text-char-700/70">
               <span>Payment</span>
-              <span className="capitalize">{order.payment_method}</span>
+              <span>{paymentMethodLabel(order.payment_method)}</span>
             </div>
           )}
           {order.amount_tendered != null && (
@@ -101,6 +107,31 @@ export default function ReceiptModal({
             </div>
           )}
         </div>
+
+        {order.senior_pwd_details.length > 0 && (
+          <div className="mt-4 border-t border-dashed border-char-700/20 pt-3">
+            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-char-700/50">
+              Senior/PWD discount detail
+            </p>
+            <div className="space-y-1.5">
+              {order.senior_pwd_details.map((entry, i) => (
+                <div key={i} className="text-xs text-char-700/70">
+                  <p className="font-medium text-char-800">
+                    {entry.name} —{" "}
+                    <span className="capitalize">{entry.id_type}</span> ID #
+                    {entry.id_number}
+                  </p>
+                  <p>
+                    {entry.items
+                      .map((it) => `${it.quantity}× ${it.product_name}`)
+                      .join(", ")}{" "}
+                    · −{formatPeso(entry.discount_amount)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <p className="mt-4 text-center text-xs capitalize text-char-700/40">
           Status: {order.status}

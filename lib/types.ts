@@ -45,6 +45,22 @@ export interface OrderItem {
   special_instructions: string | null;
 }
 
+export type SeniorPwdIdType = "senior" | "pwd";
+
+export interface SeniorPwdClaimItem {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+}
+
+export interface SeniorPwdEntry {
+  id_type: SeniorPwdIdType;
+  id_number: string;
+  name: string;
+  items: SeniorPwdClaimItem[];
+  discount_amount: number;
+}
+
 export interface Order {
   id: string;
   order_number: number;
@@ -62,6 +78,8 @@ export interface Order {
   order_type: OrderType;
   table_number: string | null;
   cancel_reason: string | null;
+  senior_pwd_discount_total: number;
+  senior_pwd_details: SeniorPwdEntry[];
   created_at: string;
   ready_at: string | null;
   completed_at: string | null;

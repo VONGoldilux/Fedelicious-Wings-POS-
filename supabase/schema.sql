@@ -90,6 +90,14 @@ create table public.orders (
   order_type public.order_type not null default 'takeout',
   table_number text,             -- only meaningful when order_type = 'dine_in'
   cancel_reason text,            -- required when status is set to 'cancelled'
+  -- RA 9994 (Senior Citizens) / RA 10754 (PWD): 20% discount, tracked per ID
+  -- so it can't be double-claimed and the OR can disclose each ID per BIR
+  -- rules. Mutually exclusive with promo discounts at checkout (the app
+  -- enforces this — not a DB constraint). Shape of each senior_pwd_details
+  -- entry: { id_type: 'senior'|'pwd', id_number, name,
+  --          items: [{ product_id, product_name, quantity }], discount_amount }
+  senior_pwd_discount_total numeric(10,2) not null default 0,
+  senior_pwd_details jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   ready_at timestamptz,
   completed_at timestamptz
