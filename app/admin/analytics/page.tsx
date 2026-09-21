@@ -12,7 +12,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
-import { formatPeso } from "@/lib/utils";
+import { formatPeso, paymentMethodLabel } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -62,6 +62,7 @@ const ORDER_TYPE_LABEL: Record<string, string> = {
   delivery: "Delivery",
 };
 const ORDER_TYPES = ["dine_in", "takeout", "delivery"] as const;
+const PAYMENT_METHODS = ["cash", "gcash"] as const;
 
 function bucketKeyFor(date: Date, granularity: Granularity): string {
   if (granularity === "day") {
@@ -104,6 +105,9 @@ export default function AnalyticsPage() {
   const [loadingStats, setLoadingStats] = useState(true);
 
   const [orderTypeStats, setOrderTypeStats] = useState<
+    Record<string, { count: number; revenue: number }>
+  >({});
+  const [paymentStats, setPaymentStats] = useState<
     Record<string, { count: number; revenue: number }>
   >({});
   const [loadingOrderTypes, setLoadingOrderTypes] = useState(true);
@@ -175,20 +179,31 @@ export default function AnalyticsPage() {
 
       const { data } = await supabase
         .from("orders")
-        .select("order_type, total")
+        .select("order_type, payment_method, total")
         .neq("status", "cancelled")
         .gte("created_at", since.toISOString());
 
-      const stats: Record<string, { count: number; revenue: number }> = {};
-      for (const type of ORDER_TYPES) stats[type] = { count: 0, revenue: 0 };
+      const typeStats: Record<string, { count: number; revenue: number }> = {};
+      for (const type of ORDER_TYPES) typeStats[type] = { count: 0, revenue: 0 };
+      const payStats: Record<string, { count: number; revenue: number }> = {};
+      for (const method of PAYMENT_METHODS) payStats[method] = { count: 0, revenue: 0 };
+
       for (const o of data ?? []) {
-        const bucket = stats[o.order_type] ?? { count: 0, revenue: 0 };
-        bucket.count += 1;
-        bucket.revenue += Number(o.total);
-        stats[o.order_type] = bucket;
+        const typeBucket = typeStats[o.order_type] ?? { count: 0, revenue: 0 };
+        typeBucket.count += 1;
+        typeBucket.revenue += Number(o.total);
+        typeStats[o.order_type] = typeBucket;
+
+        if (o.payment_method) {
+          const payBucket = payStats[o.payment_method] ?? { count: 0, revenue: 0 };
+          payBucket.count += 1;
+          payBucket.revenue += Number(o.total);
+          payStats[o.payment_method] = payBucket;
+        }
       }
 
-      setOrderTypeStats(stats);
+      setOrderTypeStats(typeStats);
+      setPaymentStats(payStats);
       setLoadingOrderTypes(false);
     }
     load();
@@ -309,6 +324,36 @@ export default function AnalyticsPage() {
                 >
                   <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
                     {ORDER_TYPE_LABEL[type]}
+                  </p>
+                  <p className="mt-1 font-display text-2xl font-semibold text-char-900">
+                    {stat.count} orders
+                  </p>
+                  <p className="text-sm text-ember-600">{formatPeso(stat.revenue)}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ---------- Payment methods ---------- */}
+      <div className="mb-8">
+        <h2 className="mb-4 font-display font-semibold text-char-900">
+          Payment methods
+        </h2>
+        {loadingOrderTypes ? (
+          <p className="text-char-700/60">Loading…</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:max-w-lg">
+            {PAYMENT_METHODS.map((method) => {
+              const stat = paymentStats[method] ?? { count: 0, revenue: 0 };
+              return (
+                <div
+                  key={method}
+                  className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
+                >
+                  <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
+                    {paymentMethodLabel(method)}
                   </p>
                   <p className="mt-1 font-display text-2xl font-semibold text-char-900">
                     {stat.count} orders
