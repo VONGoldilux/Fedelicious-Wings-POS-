@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { formatTime, minutesSince } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
+const RECENT_LIMIT = 8;
+
 const ACTIVE_STATUSES = ["queued", "preparing", "ready"] as const;
 
 export default function KitchenQueuePage() {
@@ -12,6 +14,7 @@ export default function KitchenQueuePage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [handledToday, setHandledToday] = useState(0);
+  const [recentHandled, setRecentHandled] = useState<Order[]>([]);
   const [, forceTick] = useState(0);
 
   const loadOrders = useCallback(async () => {
@@ -37,10 +40,21 @@ export default function KitchenQueuePage() {
     setHandledToday(count ?? 0);
   }, [supabase]);
 
+  const loadRecentHandled = useCallback(async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("*, order_items(*)")
+      .not("ready_at", "is", null)
+      .order("ready_at", { ascending: false })
+      .limit(RECENT_LIMIT);
+    setRecentHandled((data as Order[]) ?? []);
+  }, [supabase]);
+
   useEffect(() => {
     loadOrders();
     loadHandledToday();
-  }, [loadOrders, loadHandledToday]);
+    loadRecentHandled();
+  }, [loadOrders, loadHandledToday, loadRecentHandled]);
 
   // ---- Realtime: new orders appear instantly, status changes sync live ----
   useEffect(() => {
@@ -64,7 +78,10 @@ export default function KitchenQueuePage() {
               o.id === updated.id ? { ...o, ...updated } : o
             );
           });
-          if (updated.ready_at) loadHandledToday();
+          if (updated.ready_at) {
+            loadHandledToday();
+            loadRecentHandled();
+          }
         }
       )
       .on(
@@ -150,6 +167,48 @@ export default function KitchenQueuePage() {
           </Column>
         </div>
       )}
+
+      <div className="mt-8">
+        <h2 className="mb-3 font-display font-semibold text-char-900">
+          Recently handled
+        </h2>
+        {recentHandled.length === 0 ? (
+          <p className="text-sm text-char-700/60">
+            No orders handled yet — completed orders will show up here.
+          </p>
+        ) : (
+          <div className="overflow-hidden rounded-card border border-char-700/10 bg-white shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-char-800/5 text-xs uppercase text-char-700/50">
+                <tr>
+                  <th className="px-4 py-2.5">Order</th>
+                  <th className="px-4 py-2.5">Ready at</th>
+                  <th className="px-4 py-2.5">Items</th>
+                  <th className="px-4 py-2.5">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-char-700/10">
+                {recentHandled.map((o) => (
+                  <tr key={o.id}>
+                    <td className="px-4 py-2.5 font-medium text-char-900">
+                      #{o.order_number}
+                    </td>
+                    <td className="px-4 py-2.5 text-char-700/70">
+                      {o.ready_at ? formatTime(o.ready_at) : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 text-char-700/70">
+                      {o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items
+                    </td>
+                    <td className="px-4 py-2.5 capitalize text-char-700/70">
+                      {o.status}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

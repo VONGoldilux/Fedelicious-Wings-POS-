@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
   super_admin: [
     { href: "/admin/dashboard", label: "Dashboard" },
+    { href: "/admin/transactions", label: "Transactions" },
     { href: "/admin/products", label: "Menu" },
     { href: "/admin/staff", label: "Staff" },
     { href: "/admin/payroll", label: "Payroll" },

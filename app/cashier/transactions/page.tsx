@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { formatDateTime, formatPeso } from "@/lib/utils";
+import ReceiptModal from "@/components/ReceiptModal";
 import type { Order } from "@/lib/types";
 
 const RANGE_OPTIONS = [
@@ -27,6 +28,7 @@ export default function CashierTransactionsPage() {
   const [rangeDays, setRangeDays] = useState(1);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -160,21 +162,37 @@ export default function CashierTransactionsPage() {
                   <td className="px-4 py-3 text-right font-semibold text-char-900">
                     {formatPeso(o.total)}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    {o.status === "ready" && (
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
                       <button
-                        onClick={() => markHandedOff(o.id)}
-                        className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                        onClick={() => setViewingOrder(o)}
+                        className="rounded border border-char-700/20 px-3 py-1.5 text-xs font-medium text-char-800 hover:bg-char-800/5"
                       >
-                        Mark handed off
+                        Receipt
                       </button>
-                    )}
+                      {o.status === "ready" && (
+                        <button
+                          onClick={() => markHandedOff(o.id)}
+                          className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                        >
+                          Mark handed off
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {viewingOrder && (
+        <ReceiptModal
+          order={viewingOrder}
+          cashierName={profile?.full_name}
+          onClose={() => setViewingOrder(null)}
+        />
       )}
     </div>
   );
