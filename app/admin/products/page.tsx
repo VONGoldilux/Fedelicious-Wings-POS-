@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { formatPeso } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
+const CATEGORY_OPTIONS = ["Wings", "Beverages", "Pasta", "Snacks", "Add-ons"];
+
 const EMPTY_FORM = {
   id: null as string | null,
   name: "",
@@ -304,12 +306,20 @@ export default function ProductsPage() {
                 <label className="mb-1 block text-sm font-medium text-char-700">
                   Category
                 </label>
-                <input
+                <select
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                   className="w-full rounded-md border border-char-700/20 px-3 py-2 focus:border-ember-500 focus:outline-none"
-                  placeholder="Wings, Sides, Drinks…"
-                />
+                >
+                  {(CATEGORY_OPTIONS.includes(form.category)
+                    ? CATEGORY_OPTIONS
+                    : [form.category, ...CATEGORY_OPTIONS]
+                  ).map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
