@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -25,8 +26,17 @@ export default function AppHeader() {
     <header className="sticky top-0 z-30 border-b border-char-700/60 bg-char-950/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-8">
-          <span className="font-display text-lg font-semibold tracking-tight text-cream">
-            Fedelicious <span className="text-ember-500">Wings</span>
+          <span className="flex items-center gap-2">
+            <Image
+              src="/logo.png"
+              alt="Fedelicious Wings"
+              width={32}
+              height={32}
+              className="rounded-full"
+            />
+            <span className="font-display text-lg font-semibold tracking-tight text-cream">
+              Fedelicious <span className="text-ember-500">Wings</span>
+            </span>
           </span>
           <nav className="hidden gap-1 sm:flex">
             {links.map((link) => {

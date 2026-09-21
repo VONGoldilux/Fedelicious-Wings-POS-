@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
@@ -35,6 +36,13 @@ function LoginForm() {
     <main className="flex min-h-screen items-center justify-center bg-char-950 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
+          <Image
+            src="/logo.png"
+            alt="Fedelicious Wings"
+            width={80}
+            height={80}
+            className="mx-auto mb-3 rounded-full"
+          />
           <h1 className="font-display text-3xl font-semibold text-cream">
             Fedelicious <span className="text-ember-500">Wings</span>
           </h1>
