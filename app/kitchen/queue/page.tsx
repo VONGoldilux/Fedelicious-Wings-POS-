@@ -134,10 +134,12 @@ export default function KitchenQueuePage() {
 
       {loading ? (
         <p className="text-char-700/60">Loading queue…</p>
-      ) : orders.length === 0 ? (
-        <p className="text-char-700/60">No active orders. All caught up! 🍗</p>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <>
+          {orders.length === 0 && (
+            <p className="mb-4 text-char-700/60">No active orders. All caught up! 🍗</p>
+          )}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <Column title="Queued" count={queued.length} accent="border-char-700/30">
             {queued.map((o) => (
               <OrderCard
@@ -165,7 +167,8 @@ export default function KitchenQueuePage() {
               <OrderCard key={o.id} order={o} readOnly />
             ))}
           </Column>
-        </div>
+          </div>
+        </>
       )}
 
       <div className="mt-8">
