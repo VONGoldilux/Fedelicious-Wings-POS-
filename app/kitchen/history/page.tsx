@@ -16,6 +16,12 @@ const STATUS_STYLES: Record<string, string> = {
   ready: "bg-mustard-100 text-mustard-700",
 };
 
+const ORDER_TYPE_LABEL: Record<string, string> = {
+  dine_in: "Dine-in",
+  takeout: "Takeout",
+  delivery: "Delivery",
+};
+
 function prepMinutes(order: Order): number | null {
   if (!order.ready_at) return null;
   return Math.round(
@@ -113,6 +119,7 @@ export default function KitchenHistoryPage() {
             <thead className="bg-char-800/5 text-xs uppercase text-char-700/50">
               <tr>
                 <th className="px-4 py-2.5">Order</th>
+                <th className="px-4 py-2.5">Type</th>
                 <th className="px-4 py-2.5">Queued at</th>
                 <th className="px-4 py-2.5">Ready at</th>
                 <th className="px-4 py-2.5">Prep time</th>
@@ -125,6 +132,12 @@ export default function KitchenHistoryPage() {
                 <tr key={o.id}>
                   <td className="px-4 py-3 font-medium text-char-900">
                     #{o.order_number}
+                  </td>
+                  <td className="px-4 py-3 text-char-700/70">
+                    {ORDER_TYPE_LABEL[o.order_type] ?? o.order_type}
+                    {o.order_type === "dine_in" && o.table_number
+                      ? ` · Table ${o.table_number}`
+                      : ""}
                   </td>
                   <td className="px-4 py-3 text-char-700/70">
                     {formatDateTime(o.created_at)}

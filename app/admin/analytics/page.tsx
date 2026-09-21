@@ -56,6 +56,13 @@ const GRANULARITY_WINDOW: Record<Granularity, { lookbackDays: number; buckets: n
 
 const TREND_COLORS = ["#F0662B", "#D49B22", "#463830", "#FF8A4C", "#2F6F5E"];
 
+const ORDER_TYPE_LABEL: Record<string, string> = {
+  dine_in: "Dine-in",
+  takeout: "Takeout",
+  delivery: "Delivery",
+};
+const ORDER_TYPES = ["dine_in", "takeout", "delivery"] as const;
+
 function bucketKeyFor(date: Date, granularity: Granularity): string {
   if (granularity === "day") {
     return date.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -95,6 +102,11 @@ export default function AnalyticsPage() {
 
   const [categoryStats, setCategoryStats] = useState<CategoryItemStat[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
+
+  const [orderTypeStats, setOrderTypeStats] = useState<
+    Record<string, { count: number; revenue: number }>
+  >({});
+  const [loadingOrderTypes, setLoadingOrderTypes] = useState(true);
 
   const [trendRows, setTrendRows] = useState<
     { product_id: string; product_name: string; quantity: number; created_at: string }[]
@@ -152,6 +164,36 @@ export default function AnalyticsPage() {
     if (products.length > 0) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rangeDays, products]);
+
+  // ---- Orders by channel (dine-in / takeout / delivery) -------------------
+  useEffect(() => {
+    async function load() {
+      setLoadingOrderTypes(true);
+      const since = new Date();
+      since.setDate(since.getDate() - rangeDays);
+      since.setHours(0, 0, 0, 0);
+
+      const { data } = await supabase
+        .from("orders")
+        .select("order_type, total")
+        .neq("status", "cancelled")
+        .gte("created_at", since.toISOString());
+
+      const stats: Record<string, { count: number; revenue: number }> = {};
+      for (const type of ORDER_TYPES) stats[type] = { count: 0, revenue: 0 };
+      for (const o of data ?? []) {
+        const bucket = stats[o.order_type] ?? { count: 0, revenue: 0 };
+        bucket.count += 1;
+        bucket.revenue += Number(o.total);
+        stats[o.order_type] = bucket;
+      }
+
+      setOrderTypeStats(stats);
+      setLoadingOrderTypes(false);
+    }
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangeDays]);
 
   // ---- Trend data for the selected granularity ----------------------------
   useEffect(() => {
@@ -237,6 +279,36 @@ export default function AnalyticsPage() {
         <p className="text-sm text-char-700/70">
           What's selling, what isn't, and how it's trending.
         </p>
+      </div>
+
+      {/* ---------- Orders by channel ---------- */}
+      <div className="mb-8">
+        <h2 className="mb-4 font-display font-semibold text-char-900">
+          Orders by channel
+        </h2>
+        {loadingOrderTypes ? (
+          <p className="text-char-700/60">Loading…</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {ORDER_TYPES.map((type) => {
+              const stat = orderTypeStats[type] ?? { count: 0, revenue: 0 };
+              return (
+                <div
+                  key={type}
+                  className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
+                >
+                  <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
+                    {ORDER_TYPE_LABEL[type]}
+                  </p>
+                  <p className="mt-1 font-display text-2xl font-semibold text-char-900">
+                    {stat.count} orders
+                  </p>
+                  <p className="text-sm text-ember-600">{formatPeso(stat.revenue)}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ---------- Top/Bottom sellers per category ---------- */}
