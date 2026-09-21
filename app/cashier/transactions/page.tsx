@@ -70,6 +70,12 @@ export default function CashierTransactionsPage() {
     return {
       count: completed.length,
       revenue: completed.reduce((sum, o) => sum + Number(o.total), 0),
+      cash: completed
+        .filter((o) => o.payment_method === "cash")
+        .reduce((sum, o) => sum + Number(o.total), 0),
+      epayment: completed
+        .filter((o) => o.payment_method === "gcash")
+        .reduce((sum, o) => sum + Number(o.total), 0),
     };
   }, [orders]);
 
@@ -142,7 +148,7 @@ export default function CashierTransactionsPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:max-w-md">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:max-w-2xl sm:grid-cols-4">
         <div className="rounded-card border border-char-700/10 bg-white p-4 shadow-sm">
           <p className="text-xs text-char-700/50">Transactions</p>
           <p className="font-display text-2xl font-semibold text-char-900">
@@ -153,6 +159,18 @@ export default function CashierTransactionsPage() {
           <p className="text-xs text-char-700/50">Revenue</p>
           <p className="font-display text-2xl font-semibold text-ember-600">
             {formatPeso(summary.revenue)}
+          </p>
+        </div>
+        <div className="rounded-card border border-char-700/10 bg-white p-4 shadow-sm">
+          <p className="text-xs text-char-700/50">Cash</p>
+          <p className="font-display text-2xl font-semibold text-char-900">
+            {formatPeso(summary.cash)}
+          </p>
+        </div>
+        <div className="rounded-card border border-char-700/10 bg-white p-4 shadow-sm">
+          <p className="text-xs text-char-700/50">E-Payment</p>
+          <p className="font-display text-2xl font-semibold text-char-900">
+            {formatPeso(summary.epayment)}
           </p>
         </div>
       </div>
