@@ -16,7 +16,10 @@ const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
     { href: "/cashier/pos", label: "Cashier" },
     { href: "/cashier/transactions", label: "Transactions" },
   ],
-  kitchen: [{ href: "/kitchen/queue", label: "Kitchen" }],
+  kitchen: [
+    { href: "/kitchen/queue", label: "Kitchen" },
+    { href: "/kitchen/history", label: "History" },
+  ],
 };
 
 export default function AppHeader() {
