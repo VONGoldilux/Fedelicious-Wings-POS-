@@ -5,6 +5,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { formatPeso } from "@/lib/utils";
+import ReceiptModal from "@/components/ReceiptModal";
 import type { CartLine, Order, PaymentMethod, Product } from "@/lib/types";
 
 export default function CashierPOSPage() {
@@ -18,6 +19,7 @@ export default function CashierPOSPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [tendered, setTendered] = useState("");
   const [readyAlerts, setReadyAlerts] = useState<Order[]>([]);
+  const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
 
   // ---- Load menu -----------------------------------------------------
   useEffect(() => {
@@ -146,12 +148,28 @@ export default function CashierPOSPage() {
         quantity: l.quantity,
       }));
 
-      const { error: itemsError } = await supabase
+      const { data: insertedItems, error: itemsError } = await supabase
         .from("order_items")
-        .insert(lineItems);
+        .insert(lineItems)
+        .select();
       if (itemsError) throw itemsError;
 
-      alert(`Order #${order.order_number} sent to the kitchen.`);
+      setReceiptOrder({
+        id: order.id,
+        order_number: order.order_number,
+        status: "queued",
+        subtotal,
+        total: subtotal,
+        payment_method: paymentMethod,
+        amount_tendered: paymentMethod === "cash" ? Number(tendered) : subtotal,
+        change_due: paymentMethod === "cash" ? change : 0,
+        notes: null,
+        cashier_id: profile.id,
+        created_at: new Date().toISOString(),
+        ready_at: null,
+        completed_at: null,
+        order_items: insertedItems ?? [],
+      });
       setCart([]);
       setTendered("");
     } catch (err) {
@@ -350,6 +368,14 @@ export default function CashierPOSPage() {
           {paying ? "Sending to kitchen…" : `Checkout · ${formatPeso(subtotal)}`}
         </button>
       </div>
+
+      {receiptOrder && (
+        <ReceiptModal
+          order={receiptOrder}
+          cashierName={profile?.full_name}
+          onClose={() => setReceiptOrder(null)}
+        />
+      )}
     </div>
   );
 }
