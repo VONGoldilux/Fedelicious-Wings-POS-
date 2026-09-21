@@ -53,6 +53,12 @@ export default function ReceiptModal({
             <span>Subtotal</span>
             <span>{formatPeso(order.subtotal)}</span>
           </div>
+          {order.discount_amount > 0 && (
+            <div className="flex justify-between text-green-700">
+              <span>Discount{order.promo_name ? ` (${order.promo_name})` : ""}</span>
+              <span>−{formatPeso(order.discount_amount)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-base font-semibold text-char-900">
             <span>Total</span>
             <span>{formatPeso(order.total)}</span>

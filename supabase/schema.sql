@@ -76,12 +76,16 @@ create table public.orders (
   order_number bigint generated always as identity,
   status public.order_status not null default 'queued',
   subtotal numeric(10,2) not null default 0,
+  discount_amount numeric(10,2) not null default 0,
   total numeric(10,2) not null default 0,
   payment_method public.payment_method,
   amount_tendered numeric(10,2),
   change_due numeric(10,2),
   notes text,
   cashier_id uuid references public.profiles(id),
+  promo_id uuid,                 -- FK to promotions added in section 13 below
+                                  -- (promotions is defined later in this file)
+  promo_name text,               -- snapshot, survives promo edits/deletes
   created_at timestamptz not null default now(),
   ready_at timestamptz,
   completed_at timestamptz
@@ -398,6 +402,12 @@ before update on public.promotions
 for each row execute function public.set_updated_at();
 
 create index idx_promotions_active_dates on public.promotions (is_active, start_date, end_date);
+
+-- Now that promotions exists, wire up the FK declared (as a plain column)
+-- on orders back in section 4.
+alter table public.orders
+  add constraint orders_promo_id_fkey
+  foreign key (promo_id) references public.promotions(id) on delete set null;
 
 alter table public.promotions enable row level security;
 

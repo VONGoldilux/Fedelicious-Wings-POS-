@@ -48,12 +48,15 @@ export interface Order {
   order_number: number;
   status: OrderStatus;
   subtotal: number;
+  discount_amount: number;
   total: number;
   payment_method: PaymentMethod | null;
   amount_tendered: number | null;
   change_due: number | null;
   notes: string | null;
   cashier_id: string | null;
+  promo_id: string | null;
+  promo_name: string | null;
   created_at: string;
   ready_at: string | null;
   completed_at: string | null;

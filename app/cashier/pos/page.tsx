@@ -6,7 +6,73 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { formatPeso } from "@/lib/utils";
 import ReceiptModal from "@/components/ReceiptModal";
-import type { CartLine, Order, PaymentMethod, Product } from "@/lib/types";
+import { WEEKDAYS } from "@/lib/types";
+import type { CartLine, Order, PaymentMethod, Product, Promotion } from "@/lib/types";
+
+// ---------------------------------------------------------------------------
+// Promo eligibility + discount math. A promo is "eligible" for the current
+// cart when today falls in its date range/valid days AND the cart actually
+// satisfies its trigger condition (has the scoped/required item(s)).
+// ---------------------------------------------------------------------------
+function isPromoDateActive(promo: Promotion): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+  if (today < promo.start_date || today > promo.end_date) return false;
+  if (promo.valid_days && promo.valid_days.length > 0) {
+    const todayName = WEEKDAYS[(new Date().getDay() + 6) % 7]; // Mon=0..Sun=6
+    if (!promo.valid_days.includes(todayName)) return false;
+  }
+  return true;
+}
+
+function isPromoEligible(promo: Promotion, cart: CartLine[]): boolean {
+  if (!promo.is_active || !isPromoDateActive(promo)) return false;
+
+  if (promo.promo_type === "discount_percentage" || promo.promo_type === "discount_flat") {
+    const scopeId = promo.required_items[0]?.product_id;
+    return scopeId ? cart.some((l) => l.product.id === scopeId) : cart.length > 0;
+  }
+  if (promo.promo_type === "free_item") {
+    const req = promo.required_items[0];
+    if (!req) return false;
+    const line = cart.find((l) => l.product.id === req.product_id);
+    return !!line && line.quantity >= req.quantity;
+  }
+  if (promo.promo_type === "bundle") {
+    return promo.reward_items.every((r) =>
+      cart.some((l) => l.product.id === r.product_id)
+    );
+  }
+  return false;
+}
+
+function computeDiscount(promo: Promotion, cart: CartLine[], subtotal: number): number {
+  if (promo.promo_type === "discount_percentage") {
+    const scopeId = promo.required_items[0]?.product_id;
+    const base = scopeId
+      ? cart
+          .filter((l) => l.product.id === scopeId)
+          .reduce((s, l) => s + l.product.price * l.quantity, 0)
+      : subtotal;
+    return Math.round(base * ((promo.discount_value ?? 0) / 100) * 100) / 100;
+  }
+  if (promo.promo_type === "discount_flat") {
+    const scopeId = promo.required_items[0]?.product_id;
+    const base = scopeId
+      ? cart
+          .filter((l) => l.product.id === scopeId)
+          .reduce((s, l) => s + l.product.price * l.quantity, 0)
+      : subtotal;
+    return Math.min(promo.discount_value ?? 0, base);
+  }
+  if (promo.promo_type === "bundle") {
+    const normalTotal = promo.reward_items.reduce((sum, r) => {
+      const line = cart.find((l) => l.product.id === r.product_id);
+      return sum + (line ? line.product.price : 0);
+    }, 0);
+    return Math.max(0, normalTotal - (promo.bundle_price ?? 0));
+  }
+  return 0; // free_item: handled as a ₱0 bonus line, not a subtotal discount
+}
 
 export default function CashierPOSPage() {
   const supabase = createClient();
@@ -21,6 +87,8 @@ export default function CashierPOSPage() {
   const [tendered, setTendered] = useState("");
   const [readyAlerts, setReadyAlerts] = useState<Order[]>([]);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
 
   // ---- Load menu -----------------------------------------------------
   useEffect(() => {
@@ -31,6 +99,16 @@ export default function CashierPOSPage() {
       .order("category")
       .order("name")
       .then(({ data }) => setProducts(data ?? []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Load active promos ---------------------------------------------
+  useEffect(() => {
+    supabase
+      .from("promotions")
+      .select("*")
+      .eq("is_active", true)
+      .then(({ data }) => setPromotions((data as Promotion[]) ?? []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -116,14 +194,36 @@ export default function CashierPOSPage() {
     (sum, l) => sum + l.product.price * l.quantity,
     0
   );
+
+  const eligiblePromos = useMemo(
+    () => promotions.filter((p) => isPromoEligible(p, cart)),
+    [promotions, cart]
+  );
+
+  // Drop the selected promo the moment the cart no longer qualifies for it
+  // (e.g. cashier removed the triggering item).
+  useEffect(() => {
+    if (selectedPromoId && !eligiblePromos.some((p) => p.id === selectedPromoId)) {
+      setSelectedPromoId(null);
+    }
+  }, [eligiblePromos, selectedPromoId]);
+
+  const selectedPromo = eligiblePromos.find((p) => p.id === selectedPromoId) ?? null;
+  const discountAmount = selectedPromo
+    ? computeDiscount(selectedPromo, cart, subtotal)
+    : 0;
+  const freeBonus =
+    selectedPromo?.promo_type === "free_item" ? selectedPromo.reward_items[0] : null;
+
+  const total = Math.max(0, subtotal - discountAmount);
   const change =
     paymentMethod === "cash" && tendered
-      ? Math.max(0, Number(tendered) - subtotal)
+      ? Math.max(0, Number(tendered) - total)
       : 0;
 
   async function checkout() {
     if (cart.length === 0 || !profile) return;
-    if (paymentMethod === "cash" && Number(tendered || 0) < subtotal) return;
+    if (paymentMethod === "cash" && Number(tendered || 0) < total) return;
 
     setPaying(true);
     try {
@@ -132,11 +232,14 @@ export default function CashierPOSPage() {
         .insert({
           status: "queued",
           subtotal,
-          total: subtotal,
+          discount_amount: discountAmount,
+          total,
           payment_method: paymentMethod,
-          amount_tendered: paymentMethod === "cash" ? Number(tendered) : subtotal,
+          amount_tendered: paymentMethod === "cash" ? Number(tendered) : total,
           change_due: paymentMethod === "cash" ? change : 0,
           cashier_id: profile.id,
+          promo_id: selectedPromo?.id ?? null,
+          promo_name: selectedPromo?.name ?? null,
         })
         .select("id, order_number")
         .single();
@@ -151,6 +254,19 @@ export default function CashierPOSPage() {
         quantity: l.quantity,
       }));
 
+      // A "free item" promo adds its reward as its own ₱0 line, rather than
+      // adjusting subtotal — that way receipts/kitchen tickets show exactly
+      // what to hand over instead of a bare discount figure.
+      if (freeBonus) {
+        lineItems.push({
+          order_id: order.id,
+          product_id: freeBonus.product_id,
+          product_name: `${freeBonus.product_name} (Free — ${selectedPromo?.name})`,
+          unit_price: 0,
+          quantity: freeBonus.quantity,
+        });
+      }
+
       const { data: insertedItems, error: itemsError } = await supabase
         .from("order_items")
         .insert(lineItems)
@@ -162,12 +278,15 @@ export default function CashierPOSPage() {
         order_number: order.order_number,
         status: "queued",
         subtotal,
-        total: subtotal,
+        discount_amount: discountAmount,
+        total,
         payment_method: paymentMethod,
-        amount_tendered: paymentMethod === "cash" ? Number(tendered) : subtotal,
+        amount_tendered: paymentMethod === "cash" ? Number(tendered) : total,
         change_due: paymentMethod === "cash" ? change : 0,
         notes: null,
         cashier_id: profile.id,
+        promo_id: selectedPromo?.id ?? null,
+        promo_name: selectedPromo?.name ?? null,
         created_at: new Date().toISOString(),
         ready_at: null,
         completed_at: null,
@@ -175,6 +294,7 @@ export default function CashierPOSPage() {
       });
       setCart([]);
       setTendered("");
+      setSelectedPromoId(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Checkout failed.");
     } finally {
@@ -323,14 +443,66 @@ export default function CashierPOSPage() {
                 </button>
               </div>
             ))}
+            {freeBonus && (
+              <div className="flex items-center justify-between rounded-md bg-green-50 px-2 py-1.5 text-sm">
+                <span className="text-green-800">
+                  {freeBonus.quantity}× {freeBonus.product_name} (Free)
+                </span>
+                <span className="text-xs font-medium text-green-700">
+                  {selectedPromo?.name}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="mb-3 flex justify-between border-t border-char-700/10 pt-3 text-sm">
-          <span className="text-char-700/70">Subtotal</span>
-          <span className="font-semibold text-char-900">
-            {formatPeso(subtotal)}
-          </span>
+        {eligiblePromos.length > 0 && (
+          <div className="mb-3 border-t border-char-700/10 pt-3">
+            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-char-700/50">
+              Promos available
+            </p>
+            <div className="space-y-1.5">
+              {eligiblePromos.map((promo) => (
+                <label
+                  key={promo.id}
+                  className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm ${
+                    selectedPromoId === promo.id
+                      ? "border-ember-500 bg-ember-50"
+                      : "border-char-700/15 hover:bg-char-800/5"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="promo"
+                    checked={selectedPromoId === promo.id}
+                    onChange={() =>
+                      setSelectedPromoId(
+                        selectedPromoId === promo.id ? null : promo.id
+                      )
+                    }
+                  />
+                  <span className="flex-1 text-char-800">{promo.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mb-3 space-y-1 border-t border-char-700/10 pt-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-char-700/70">Subtotal</span>
+            <span className="text-char-900">{formatPeso(subtotal)}</span>
+          </div>
+          {discountAmount > 0 && (
+            <div className="flex justify-between text-green-700">
+              <span>Discount ({selectedPromo?.name})</span>
+              <span>−{formatPeso(discountAmount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-base font-semibold text-char-900">
+            <span>Total</span>
+            <span>{formatPeso(total)}</span>
+          </div>
         </div>
 
         <label className="mb-1 block text-xs font-medium text-char-700/70">
@@ -375,11 +547,11 @@ export default function CashierPOSPage() {
           disabled={
             paying ||
             cart.length === 0 ||
-            (paymentMethod === "cash" && Number(tendered || 0) < subtotal)
+            (paymentMethod === "cash" && Number(tendered || 0) < total)
           }
           className="w-full rounded-md bg-ember-500 py-2.5 font-semibold text-white hover:bg-ember-600 disabled:opacity-50"
         >
-          {paying ? "Sending to kitchen…" : `Checkout · ${formatPeso(subtotal)}`}
+          {paying ? "Sending to kitchen…" : `Checkout · ${formatPeso(total)}`}
         </button>
       </div>
 
