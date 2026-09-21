@@ -150,7 +150,11 @@ export default function ProductsPage() {
 
   async function deleteProduct(p: Product) {
     if (!confirm(`Remove "${p.name}" from the menu?`)) return;
-    await supabase.from("products").delete().eq("id", p.id);
+    const { error } = await supabase.from("products").delete().eq("id", p.id);
+    if (error) {
+      alert(`Couldn't delete "${p.name}": ${error.message}`);
+      return;
+    }
     loadProducts();
   }
 
