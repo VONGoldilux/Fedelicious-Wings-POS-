@@ -329,7 +329,33 @@ to authenticated
 using (bucket_id = 'menu-images' and public.is_super_admin());
 
 -- ----------------------------------------------------------------------------
--- 12. SEED: first Super Admin
+-- 12. KITCHEN AVAILABILITY TOGGLE
+--     Kitchen staff know what's actually cookable right now (out of stock
+--     ingredients, etc.) but shouldn't get broad UPDATE rights on products
+--     (price/name/category stay super_admin-only). This function is the one
+--     narrow door: it only ever touches is_available, for kitchen or admin.
+-- ----------------------------------------------------------------------------
+create or replace function public.set_product_availability(product_id uuid, available boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.current_role() not in ('super_admin', 'kitchen') then
+    raise exception 'Not authorized to change product availability';
+  end if;
+
+  update public.products
+  set is_available = available, updated_at = now()
+  where id = product_id;
+end;
+$$;
+
+grant execute on function public.set_product_availability(uuid, boolean) to authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 13. SEED: first Super Admin
 --     Sign up a user through the app's /login page first (Supabase Auth
 --     creates the auth.users row + a 'cashier' profile automatically via the
 --     trigger above), THEN run this to promote that one account:

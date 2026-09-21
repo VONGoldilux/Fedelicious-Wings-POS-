@@ -19,6 +19,7 @@ const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
   ],
   kitchen: [
     { href: "/kitchen/queue", label: "Kitchen" },
+    { href: "/kitchen/availability", label: "Menu" },
     { href: "/kitchen/history", label: "History" },
   ],
 };
