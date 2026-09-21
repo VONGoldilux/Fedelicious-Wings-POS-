@@ -60,6 +60,50 @@ export interface Order {
   order_items?: OrderItem[];
 }
 
+// ---------- Promotions ----------
+
+export type PromoType =
+  | "discount_percentage"
+  | "discount_flat"
+  | "free_item"
+  | "bundle";
+
+export const WEEKDAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
+export type Weekday = (typeof WEEKDAYS)[number];
+
+// Snapshot shape stored inside promotions.required_items / reward_items.
+export interface PromoItemRef {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+}
+
+export interface Promotion {
+  id: string;
+  name: string;
+  description: string | null;
+  start_date: string; // date, "YYYY-MM-DD"
+  end_date: string; // date, "YYYY-MM-DD"
+  valid_days: Weekday[] | null; // null/empty = every day
+  promo_type: PromoType;
+  discount_value: number | null;
+  bundle_price: number | null;
+  required_items: PromoItemRef[];
+  reward_items: PromoItemRef[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TimeLog {
   id: string;
   staff_id: string;

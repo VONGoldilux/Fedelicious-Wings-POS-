@@ -355,7 +355,77 @@ $$;
 grant execute on function public.set_product_availability(uuid, boolean) to authenticated;
 
 -- ----------------------------------------------------------------------------
--- 13. SEED: first Super Admin
+-- 13. PROMOTIONS
+--     Super admin builds these; cashier reads active ones to apply at
+--     checkout (POS-side matching logic lives in the app, not in SQL).
+--     required_items / reward_items shape: [{ "product_id": uuid,
+--     "product_name": text, "quantity": int }]
+--       - discount_percentage / discount_flat: required_items = cart trigger
+--         (optional — empty means "applies to whole order"), discount_value
+--         holds the % or ₱ amount, reward_items unused.
+--       - free_item: required_items = the "buy" item(s), reward_items = the
+--         free item(s).
+--       - bundle: reward_items = the set of items in the combo, bundle_price
+--         = the fixed price for that set; required_items unused.
+-- ----------------------------------------------------------------------------
+create type public.promo_type as enum (
+  'discount_percentage',
+  'discount_flat',
+  'free_item',
+  'bundle'
+);
+
+create table public.promotions (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  start_date date not null,
+  end_date date not null,
+  valid_days text[],                                  -- e.g. '{Monday,Wednesday}'; null/empty = every day
+  promo_type public.promo_type not null,
+  discount_value numeric(10,2),                        -- % for discount_percentage, ₱ for discount_flat
+  bundle_price numeric(10,2),                           -- fixed set price, promo_type = 'bundle'
+  required_items jsonb not null default '[]'::jsonb,
+  reward_items jsonb not null default '[]'::jsonb,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint promotions_dates_check check (end_date >= start_date)
+);
+
+create trigger trg_promotions_updated_at
+before update on public.promotions
+for each row execute function public.set_updated_at();
+
+create index idx_promotions_active_dates on public.promotions (is_active, start_date, end_date);
+
+alter table public.promotions enable row level security;
+
+-- Anyone signed in can read (cashier needs active promos at checkout).
+-- Only super_admin can create/edit/delete.
+create policy "promotions_select_authenticated"
+on public.promotions for select
+to authenticated
+using (true);
+
+create policy "promotions_insert_super_admin"
+on public.promotions for insert
+to authenticated
+with check (public.is_super_admin());
+
+create policy "promotions_update_super_admin"
+on public.promotions for update
+to authenticated
+using (public.is_super_admin())
+with check (public.is_super_admin());
+
+create policy "promotions_delete_super_admin"
+on public.promotions for delete
+to authenticated
+using (public.is_super_admin());
+
+-- ----------------------------------------------------------------------------
+-- 14. SEED: first Super Admin
 --     Sign up a user through the app's /login page first (Supabase Auth
 --     creates the auth.users row + a 'cashier' profile automatically via the
 --     trigger above), THEN run this to promote that one account:
