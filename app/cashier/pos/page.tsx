@@ -113,16 +113,38 @@ export default function CashierPOSPage() {
   const [newEntryIdNumber, setNewEntryIdNumber] = useState("");
   const [newEntryName, setNewEntryName] = useState("");
   const [newEntryClaims, setNewEntryClaims] = useState<Record<string, number>>({});
+  const [showUnavailablePanel, setShowUnavailablePanel] = useState(true);
 
-  // ---- Load menu -----------------------------------------------------
+  // ---- Load menu (all items — unavailable ones stay visible but marked) --
   useEffect(() => {
     supabase
       .from("products")
       .select("*")
-      .eq("is_available", true)
       .order("category")
       .order("name")
       .then(({ data }) => setProducts(data ?? []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Realtime: reflect kitchen's availability toggles live ------------
+  useEffect(() => {
+    const channel = supabase
+      .channel("cashier-product-availability")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "products" },
+        (payload) => {
+          const updated = payload.new as Product;
+          setProducts((prev) =>
+            prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -186,7 +208,13 @@ export default function CashierPOSPage() {
     return byCategory.filter((p) => p.name.toLowerCase().includes(q));
   }, [products, category, search]);
 
+  const unavailableProducts = useMemo(
+    () => products.filter((p) => !p.is_available),
+    [products]
+  );
+
   function addToCart(product: Product) {
+    if (!product.is_available) return;
     setCart((prev) => {
       const existing = prev.find((l) => l.product.id === product.id);
       if (existing) {
@@ -451,6 +479,45 @@ export default function CashierPOSPage() {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+      {/* ---------- Unavailable items panel ---------- */}
+      {unavailableProducts.length > 0 && (
+        <div className="fixed left-4 top-20 z-40 w-72">
+          {showUnavailablePanel ? (
+            <div className="rounded-card border border-ember-300 bg-white shadow-lg">
+              <div className="flex items-center justify-between border-b border-ember-100 bg-ember-50 px-3 py-2">
+                <p className="text-sm font-semibold text-ember-700">
+                  Unavailable ({unavailableProducts.length})
+                </p>
+                <button
+                  onClick={() => setShowUnavailablePanel(false)}
+                  className="text-xs text-ember-600 hover:underline"
+                >
+                  Minimize
+                </button>
+              </div>
+              <ul className="max-h-64 divide-y divide-char-700/10 overflow-y-auto">
+                {unavailableProducts.map((p) => (
+                  <li
+                    key={p.id}
+                    className="px-3 py-2 text-sm text-char-700"
+                  >
+                    <span className="line-clamp-1">{p.name}</span>
+                    <span className="block text-xs text-char-700/40">{p.category}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowUnavailablePanel(true)}
+              className="rounded-full border border-ember-300 bg-white px-3 py-1.5 text-sm font-medium text-ember-700 shadow-lg hover:bg-ember-50"
+            >
+              {unavailableProducts.length} unavailable
+            </button>
+          )}
+        </div>
+      )}
+
       {/* ---------- Ready-order alerts ---------- */}
       {readyAlerts.length > 0 && (
         <div className="fixed right-4 top-20 z-50 flex w-80 flex-col gap-2 lg:col-span-2">
@@ -518,7 +585,12 @@ export default function CashierPOSPage() {
             <button
               key={p.id}
               onClick={() => addToCart(p)}
-              className="overflow-hidden rounded-card border border-char-700/10 bg-white text-left shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
+              disabled={!p.is_available}
+              className={`overflow-hidden rounded-card border border-char-700/10 bg-white text-left shadow-sm transition-transform ${
+                p.is_available
+                  ? "hover:-translate-y-0.5 hover:shadow-md"
+                  : "cursor-not-allowed opacity-75"
+              }`}
             >
               <div className="relative h-24 w-full bg-char-800/5">
                 {p.image_url ? (
@@ -526,11 +598,36 @@ export default function CashierPOSPage() {
                     src={p.image_url}
                     alt={p.name}
                     fill
-                    className="object-cover"
+                    className={`object-cover ${!p.is_available ? "grayscale" : ""}`}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-xs text-char-700/30">
                     No image
+                  </div>
+                )}
+                {!p.is_available && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-char-950/20">
+                    <svg viewBox="0 0 100 100" className="h-full w-full">
+                      <line
+                        x1="8"
+                        y1="8"
+                        x2="92"
+                        y2="92"
+                        stroke="#D14E18"
+                        strokeWidth="6"
+                      />
+                      <line
+                        x1="92"
+                        y1="8"
+                        x2="8"
+                        y2="92"
+                        stroke="#D14E18"
+                        strokeWidth="6"
+                      />
+                    </svg>
+                    <span className="absolute bottom-1 left-1 rounded bg-ember-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                      Unavailable
+                    </span>
                   </div>
                 )}
               </div>
