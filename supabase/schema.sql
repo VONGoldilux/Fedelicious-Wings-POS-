@@ -80,6 +80,7 @@ create table public.orders (
   discount_amount numeric(10,2) not null default 0,
   total numeric(10,2) not null default 0,
   payment_method public.payment_method,
+  payment_reference text,        -- GCash/e-payment transaction reference number
   amount_tendered numeric(10,2),
   change_due numeric(10,2),
   notes text,

@@ -100,6 +100,7 @@ export default function CashierPOSPage() {
   const [paying, setPaying] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [tendered, setTendered] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
   const [readyAlerts, setReadyAlerts] = useState<Order[]>([]);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -344,6 +345,7 @@ export default function CashierPOSPage() {
   async function checkout() {
     if (cart.length === 0 || !profile) return;
     if (paymentMethod === "cash" && Number(tendered || 0) < total) return;
+    if (paymentMethod === "gcash" && !paymentReference.trim()) return;
 
     setPaying(true);
     try {
@@ -355,6 +357,8 @@ export default function CashierPOSPage() {
           discount_amount: discountAmount,
           total,
           payment_method: paymentMethod,
+          payment_reference:
+            paymentMethod === "gcash" ? paymentReference.trim() : null,
           amount_tendered: paymentMethod === "cash" ? Number(tendered) : total,
           change_due: paymentMethod === "cash" ? change : 0,
           cashier_id: profile.id,
@@ -407,6 +411,8 @@ export default function CashierPOSPage() {
         discount_amount: discountAmount,
         total,
         payment_method: paymentMethod,
+        payment_reference:
+          paymentMethod === "gcash" ? paymentReference.trim() : null,
         amount_tendered: paymentMethod === "cash" ? Number(tendered) : total,
         change_due: paymentMethod === "cash" ? change : 0,
         notes: null,
@@ -425,12 +431,19 @@ export default function CashierPOSPage() {
       });
       setCart([]);
       setTendered("");
+      setPaymentReference("");
       setSelectedPromoId(null);
       setOrderType("takeout");
       setTableNumber("");
       setSeniorPwdEntries([]);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Checkout failed.");
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err && "message" in err
+          ? String((err as { message: unknown }).message)
+          : "Checkout failed.";
+      alert(message);
     } finally {
       setPaying(false);
     }
@@ -876,12 +889,27 @@ export default function CashierPOSPage() {
           </>
         )}
 
+        {paymentMethod === "gcash" && (
+          <>
+            <label className="mb-1 block text-xs font-medium text-char-700/70">
+              Reference number
+            </label>
+            <input
+              value={paymentReference}
+              onChange={(e) => setPaymentReference(e.target.value)}
+              className="mb-3 w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+              placeholder="Enter after payment is sent & received"
+            />
+          </>
+        )}
+
         <button
           onClick={checkout}
           disabled={
             paying ||
             cart.length === 0 ||
-            (paymentMethod === "cash" && Number(tendered || 0) < total)
+            (paymentMethod === "cash" && Number(tendered || 0) < total) ||
+            (paymentMethod === "gcash" && !paymentReference.trim())
           }
           className="w-full rounded-md bg-ember-500 py-2.5 font-semibold text-white hover:bg-ember-600 disabled:opacity-50"
         >
