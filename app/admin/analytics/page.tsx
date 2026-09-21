@@ -228,6 +228,11 @@ export default function AnalyticsPage() {
   }, [granularity]);
 
   // ---- Group top/bottom-5 by category -------------------------------------
+  // Bottom 5 is drawn from whatever's left AFTER Top 5 is removed, so the
+  // two lists never show the same items twice — which used to happen for
+  // any category with 5 or fewer products, or where most items tied at 0
+  // sales (stable-sort returns identical order for both directions on a
+  // tie, so "highest first" and "lowest first" looked like the same list).
   const byCategory = useMemo(() => {
     const map = new Map<string, CategoryItemStat[]>();
     for (const s of categoryStats) {
@@ -235,11 +240,16 @@ export default function AnalyticsPage() {
       list.push(s);
       map.set(s.category, list);
     }
-    return Array.from(map.entries()).map(([category, items]) => ({
-      category,
-      top: [...items].sort((a, b) => b.qty - a.qty).slice(0, 5),
-      bottom: [...items].sort((a, b) => a.qty - b.qty).slice(0, 5),
-    }));
+    return Array.from(map.entries()).map(([category, items]) => {
+      const byBest = [...items].sort(
+        (a, b) => b.qty - a.qty || a.name.localeCompare(b.name)
+      );
+      const top = byBest.slice(0, 5);
+      const topIds = new Set(top.map((t) => t.productId));
+      const rest = byBest.filter((s) => !topIds.has(s.productId));
+      const bottom = [...rest].reverse().slice(0, 5);
+      return { category, top, bottom, hasDistinctBottom: rest.length > 0 };
+    });
   }, [categoryStats]);
 
   // ---- Trending chart: top 5 items overall in this window, bucketed ------
@@ -340,7 +350,7 @@ export default function AnalyticsPage() {
           <p className="text-char-700/60">No menu items yet.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {byCategory.map(({ category, top, bottom }) => (
+            {byCategory.map(({ category, top, bottom, hasDistinctBottom }) => (
               <div
                 key={category}
                 className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
@@ -348,10 +358,14 @@ export default function AnalyticsPage() {
                 <h3 className="mb-3 font-display font-semibold text-char-900">
                   {category}
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <RankedList title="Top 5" rows={top} tone="text-green-700" />
-                  <RankedList title="Bottom 5" rows={bottom} tone="text-ember-600" />
-                </div>
+                {hasDistinctBottom ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <RankedList title="Top 5" rows={top} tone="text-green-700" />
+                    <RankedList title="Bottom 5" rows={bottom} tone="text-ember-600" />
+                  </div>
+                ) : (
+                  <RankedList title="All items" rows={top} tone="text-char-800" />
+                )}
               </div>
             ))}
           </div>
