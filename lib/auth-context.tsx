@@ -18,8 +18,9 @@ interface AuthContextValue {
   profile: Profile | null;
   loading: boolean;
   activeTimeLogId: string | null;
+  activeClockIn: string | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  signOut: (cashCount?: { expected: number; counted: number }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTimeLogId, setActiveTimeLogId] = useState<string | null>(null);
+  const [activeClockIn, setActiveClockIn] = useState<string | null>(null);
 
   const loadProfile = useCallback(
     async (userId: string) => {
@@ -59,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (staffId: string) => {
       const { data: openLog } = await supabase
         .from("time_logs")
-        .select("id")
+        .select("id, clock_in")
         .eq("staff_id", staffId)
         .is("clock_out", null)
         .order("clock_in", { ascending: false })
@@ -68,28 +70,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (openLog) {
         setActiveTimeLogId(openLog.id);
+        setActiveClockIn(openLog.clock_in);
         return;
       }
 
       const { data: newLog } = await supabase
         .from("time_logs")
         .insert({ staff_id: staffId })
-        .select("id")
+        .select("id, clock_in")
         .single();
 
-      if (newLog) setActiveTimeLogId(newLog.id);
+      if (newLog) {
+        setActiveTimeLogId(newLog.id);
+        setActiveClockIn(newLog.clock_in);
+      }
     },
     [supabase]
   );
 
-  const clockOut = useCallback(async () => {
-    if (!activeTimeLogId) return;
-    await supabase
-      .from("time_logs")
-      .update({ clock_out: new Date().toISOString() })
-      .eq("id", activeTimeLogId);
-    setActiveTimeLogId(null);
-  }, [activeTimeLogId, supabase]);
+  const clockOut = useCallback(
+    async (cashCount?: { expected: number; counted: number }) => {
+      if (!activeTimeLogId) return;
+      await supabase
+        .from("time_logs")
+        .update({
+          clock_out: new Date().toISOString(),
+          ...(cashCount
+            ? { expected_cash: cashCount.expected, counted_cash: cashCount.counted }
+            : {}),
+        })
+        .eq("id", activeTimeLogId);
+      setActiveTimeLogId(null);
+      setActiveClockIn(null);
+    },
+    [activeTimeLogId, supabase]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -115,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_OUT") {
         setProfile(null);
         setActiveTimeLogId(null);
+        setActiveClockIn(null);
       }
     });
 
@@ -148,15 +164,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [supabase, loadProfile, ensureClockedIn, router]
   );
 
-  const signOut = useCallback(async () => {
-    await clockOut();
-    await supabase.auth.signOut();
-    router.push("/login");
-  }, [clockOut, supabase, router]);
+  const signOut = useCallback(
+    async (cashCount?: { expected: number; counted: number }) => {
+      await clockOut(cashCount);
+      await supabase.auth.signOut();
+      router.push("/login");
+    },
+    [clockOut, supabase, router]
+  );
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, activeTimeLogId, signIn, signOut }}
+      value={{
+        user,
+        profile,
+        loading,
+        activeTimeLogId,
+        activeClockIn,
+        signIn,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

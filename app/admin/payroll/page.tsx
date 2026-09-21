@@ -144,14 +144,35 @@ export default function PayrollPage() {
                         </p>
                         <ul className="space-y-1 text-char-700/80">
                           {r.logs.map((l) => (
-                            <li key={l.id} className="flex justify-between">
-                              <span>
-                                {formatDateTime(l.clock_in)} →{" "}
-                                {l.clock_out
-                                  ? formatDateTime(l.clock_out)
-                                  : "still clocked in"}
-                              </span>
-                              <span>{l.hours_worked ?? "—"} hrs</span>
+                            <li key={l.id}>
+                              <div className="flex justify-between">
+                                <span>
+                                  {formatDateTime(l.clock_in)} →{" "}
+                                  {l.clock_out
+                                    ? formatDateTime(l.clock_out)
+                                    : "still clocked in"}
+                                </span>
+                                <span>{l.hours_worked ?? "—"} hrs</span>
+                              </div>
+                              {l.cash_diff != null && (
+                                <p
+                                  className={`text-xs ${
+                                    l.cash_diff === 0
+                                      ? "text-green-700"
+                                      : "text-ember-600"
+                                  }`}
+                                >
+                                  Cash count: {formatPeso(l.counted_cash ?? 0)}{" "}
+                                  counted vs {formatPeso(l.expected_cash ?? 0)}{" "}
+                                  expected (
+                                  {l.cash_diff === 0
+                                    ? "balanced"
+                                    : l.cash_diff > 0
+                                    ? `over ${formatPeso(l.cash_diff)}`
+                                    : `short ${formatPeso(Math.abs(l.cash_diff))}`}
+                                  )
+                                </p>
+                              )}
                             </li>
                           ))}
                         </ul>

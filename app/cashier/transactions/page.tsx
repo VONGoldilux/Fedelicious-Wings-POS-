@@ -5,7 +5,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { formatDateTime, formatPeso } from "@/lib/utils";
 import ReceiptModal from "@/components/ReceiptModal";
+import CancelOrderModal from "@/components/CancelOrderModal";
 import type { Order } from "@/lib/types";
+
+const CANCELLABLE_STATUSES = ["queued", "preparing", "ready"];
 
 const RANGE_OPTIONS = [
   { label: "Today", days: 1 },
@@ -29,6 +32,7 @@ export default function CashierTransactionsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -72,6 +76,22 @@ export default function CashierTransactionsPage() {
         o.id === orderId ? { ...o, status: "completed", completed_at } : o
       )
     );
+  }
+
+  async function confirmCancel(reason: string) {
+    if (!cancellingOrder) return;
+    await supabase
+      .from("orders")
+      .update({ status: "cancelled", cancel_reason: reason })
+      .eq("id", cancellingOrder.id);
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === cancellingOrder.id
+          ? { ...o, status: "cancelled", cancel_reason: reason }
+          : o
+      )
+    );
+    setCancellingOrder(null);
   }
 
   return (
@@ -152,6 +172,7 @@ export default function CashierTransactionsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span
+                      title={o.cancel_reason ?? undefined}
                       className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
                         STATUS_STYLES[o.status] ?? "bg-char-800/10 text-char-700"
                       }`}
@@ -178,6 +199,14 @@ export default function CashierTransactionsPage() {
                           Mark handed off
                         </button>
                       )}
+                      {CANCELLABLE_STATUSES.includes(o.status) && (
+                        <button
+                          onClick={() => setCancellingOrder(o)}
+                          className="rounded border border-ember-300 px-3 py-1.5 text-xs font-medium text-ember-600 hover:bg-ember-50"
+                        >
+                          Cancel
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -192,6 +221,14 @@ export default function CashierTransactionsPage() {
           order={viewingOrder}
           cashierName={profile?.full_name}
           onClose={() => setViewingOrder(null)}
+        />
+      )}
+
+      {cancellingOrder && (
+        <CancelOrderModal
+          orderNumber={cancellingOrder.order_number}
+          onConfirm={confirmCancel}
+          onClose={() => setCancellingOrder(null)}
         />
       )}
     </div>

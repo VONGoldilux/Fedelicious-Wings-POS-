@@ -3,6 +3,12 @@
 import { formatDateTime, formatPeso } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
+const ORDER_TYPE_LABEL: Record<string, string> = {
+  dine_in: "Dine-in",
+  takeout: "Takeout",
+  delivery: "Delivery",
+};
+
 export default function ReceiptModal({
   order,
   cashierName,
@@ -33,17 +39,30 @@ export default function ReceiptModal({
           <span>Order #{order.order_number}</span>
           <span>{formatDateTime(order.created_at)}</span>
         </div>
+        <p className="mb-1 text-xs text-char-700/50">
+          {ORDER_TYPE_LABEL[order.order_type] ?? order.order_type}
+          {order.order_type === "dine_in" && order.table_number
+            ? ` · Table ${order.table_number}`
+            : ""}
+        </p>
         {cashierName && (
           <p className="mb-3 text-xs text-char-700/50">Served by {cashierName}</p>
         )}
 
         <div className="mb-3 space-y-1.5 border-y border-dashed border-char-700/20 py-3">
           {order.order_items?.map((it) => (
-            <div key={it.id} className="flex justify-between text-sm">
-              <span className="text-char-800">
-                {it.quantity}× {it.product_name}
-              </span>
-              <span className="text-char-800">{formatPeso(it.line_total)}</span>
+            <div key={it.id}>
+              <div className="flex justify-between text-sm">
+                <span className="text-char-800">
+                  {it.quantity}× {it.product_name}
+                </span>
+                <span className="text-char-800">{formatPeso(it.line_total)}</span>
+              </div>
+              {it.special_instructions && (
+                <p className="text-xs italic text-char-700/50">
+                  Note: {it.special_instructions}
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -86,6 +105,11 @@ export default function ReceiptModal({
         <p className="mt-4 text-center text-xs capitalize text-char-700/40">
           Status: {order.status}
         </p>
+        {order.status === "cancelled" && order.cancel_reason && (
+          <p className="mt-1 text-center text-xs text-ember-600">
+            Reason: {order.cancel_reason}
+          </p>
+        )}
 
         <div className="mt-5 flex gap-2 print:hidden">
           <button

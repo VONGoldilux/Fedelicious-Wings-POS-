@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateTime, formatPeso } from "@/lib/utils";
 import ReceiptModal from "@/components/ReceiptModal";
+import CancelOrderModal from "@/components/CancelOrderModal";
 import type { Order } from "@/lib/types";
 
 type OrderWithCashier = Order & { profiles: { full_name: string } | null };
@@ -13,6 +14,14 @@ const RANGE_OPTIONS = [
   { label: "Last 7 days", days: 7 },
   { label: "Last 30 days", days: 30 },
 ];
+
+const CANCELLABLE_STATUSES = ["queued", "preparing", "ready"];
+
+const ORDER_TYPE_LABEL: Record<string, string> = {
+  dine_in: "Dine-in",
+  takeout: "Takeout",
+  delivery: "Delivery",
+};
 
 const STATUS_STYLES: Record<string, string> = {
   completed: "bg-green-100 text-green-700",
@@ -29,6 +38,7 @@ export default function AdminTransactionsPage() {
   const [orders, setOrders] = useState<OrderWithCashier[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingOrder, setViewingOrder] = useState<OrderWithCashier | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<OrderWithCashier | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -56,6 +66,22 @@ export default function AdminTransactionsPage() {
       revenue: counted.reduce((sum, o) => sum + Number(o.total), 0),
     };
   }, [orders]);
+
+  async function confirmCancel(reason: string) {
+    if (!cancellingOrder) return;
+    await supabase
+      .from("orders")
+      .update({ status: "cancelled", cancel_reason: reason })
+      .eq("id", cancellingOrder.id);
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === cancellingOrder.id
+          ? { ...o, status: "cancelled", cancel_reason: reason }
+          : o
+      )
+    );
+    setCancellingOrder(null);
+  }
 
   return (
     <div>
@@ -112,6 +138,7 @@ export default function AdminTransactionsPage() {
                 <th className="px-4 py-2.5">Order</th>
                 <th className="px-4 py-2.5">Time</th>
                 <th className="px-4 py-2.5">Cashier</th>
+                <th className="px-4 py-2.5">Type</th>
                 <th className="px-4 py-2.5">Items</th>
                 <th className="px-4 py-2.5">Payment</th>
                 <th className="px-4 py-2.5">Status</th>
@@ -132,6 +159,12 @@ export default function AdminTransactionsPage() {
                     {o.profiles?.full_name ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-char-700/70">
+                    {ORDER_TYPE_LABEL[o.order_type] ?? o.order_type}
+                    {o.order_type === "dine_in" && o.table_number
+                      ? ` · Table ${o.table_number}`
+                      : ""}
+                  </td>
+                  <td className="px-4 py-3 text-char-700/70">
                     {o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items
                   </td>
                   <td className="px-4 py-3 capitalize text-char-700/70">
@@ -139,6 +172,7 @@ export default function AdminTransactionsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span
+                      title={o.cancel_reason ?? undefined}
                       className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
                         STATUS_STYLES[o.status] ?? "bg-char-800/10 text-char-700"
                       }`}
@@ -150,12 +184,22 @@ export default function AdminTransactionsPage() {
                     {formatPeso(o.total)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => setViewingOrder(o)}
-                      className="rounded border border-char-700/20 px-3 py-1.5 text-xs font-medium text-char-800 hover:bg-char-800/5"
-                    >
-                      Receipt
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setViewingOrder(o)}
+                        className="rounded border border-char-700/20 px-3 py-1.5 text-xs font-medium text-char-800 hover:bg-char-800/5"
+                      >
+                        Receipt
+                      </button>
+                      {CANCELLABLE_STATUSES.includes(o.status) && (
+                        <button
+                          onClick={() => setCancellingOrder(o)}
+                          className="rounded border border-ember-300 px-3 py-1.5 text-xs font-medium text-ember-600 hover:bg-ember-50"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -169,6 +213,14 @@ export default function AdminTransactionsPage() {
           order={viewingOrder}
           cashierName={viewingOrder.profiles?.full_name}
           onClose={() => setViewingOrder(null)}
+        />
+      )}
+
+      {cancellingOrder && (
+        <CancelOrderModal
+          orderNumber={cancellingOrder.order_number}
+          onConfirm={confirmCancel}
+          onClose={() => setCancellingOrder(null)}
         />
       )}
     </div>

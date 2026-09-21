@@ -11,6 +11,8 @@ export type OrderStatus =
 
 export type PaymentMethod = "cash" | "gcash" | "card" | "other";
 
+export type OrderType = "dine_in" | "takeout" | "delivery";
+
 export interface Profile {
   id: string;
   full_name: string;
@@ -57,6 +59,9 @@ export interface Order {
   cashier_id: string | null;
   promo_id: string | null;
   promo_name: string | null;
+  order_type: OrderType;
+  table_number: string | null;
+  cancel_reason: string | null;
   created_at: string;
   ready_at: string | null;
   completed_at: string | null;
@@ -113,6 +118,9 @@ export interface TimeLog {
   clock_in: string;
   clock_out: string | null;
   hours_worked: number | null;
+  expected_cash: number | null;
+  counted_cash: number | null;
+  cash_diff: number | null;
 }
 
 // Cart line used only on the client while building an order in the POS.

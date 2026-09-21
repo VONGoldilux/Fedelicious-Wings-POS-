@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import CashCountModal from "@/components/CashCountModal";
 
 const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
   super_admin: [
@@ -27,10 +29,19 @@ const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
 };
 
 export default function AppHeader() {
-  const { profile, signOut } = useAuth();
+  const { profile, activeClockIn, signOut } = useAuth();
   const pathname = usePathname();
+  const [showCashCount, setShowCashCount] = useState(false);
 
   const links = profile ? NAV_BY_ROLE[profile.role] ?? [] : [];
+
+  function handleSignOutClick() {
+    if (profile?.role === "cashier" && activeClockIn) {
+      setShowCashCount(true);
+    } else {
+      signOut();
+    }
+  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-char-700/60 bg-char-950/95 backdrop-blur">
@@ -78,13 +89,22 @@ export default function AppHeader() {
             </div>
           )}
           <button
-            onClick={signOut}
+            onClick={handleSignOutClick}
             className="rounded-md border border-char-700 px-3 py-1.5 text-sm text-cream/80 transition-colors hover:border-ember-500 hover:text-ember-400"
           >
             Clock out &amp; sign out
           </button>
         </div>
       </div>
+
+      {showCashCount && profile && activeClockIn && (
+        <CashCountModal
+          cashierId={profile.id}
+          clockIn={activeClockIn}
+          onCancel={() => setShowCashCount(false)}
+          onConfirm={(result) => signOut(result)}
+        />
+      )}
       <nav className="flex gap-1 overflow-x-auto border-t border-char-800 px-4 py-1 sm:hidden">
         {links.map((link) => {
           const active = pathname.startsWith(link.href);

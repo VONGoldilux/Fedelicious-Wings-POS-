@@ -15,6 +15,7 @@ create extension if not exists "pgcrypto"; -- gen_random_uuid()
 create type public.user_role as enum ('super_admin', 'cashier', 'kitchen');
 create type public.order_status as enum ('queued', 'preparing', 'ready', 'completed', 'cancelled');
 create type public.payment_method as enum ('cash', 'gcash', 'card', 'other');
+create type public.order_type as enum ('dine_in', 'takeout', 'delivery');
 
 -- ----------------------------------------------------------------------------
 -- 2. PROFILES  (extends auth.users, holds role + payroll rate)
@@ -86,6 +87,9 @@ create table public.orders (
   promo_id uuid,                 -- FK to promotions added in section 13 below
                                   -- (promotions is defined later in this file)
   promo_name text,               -- snapshot, survives promo edits/deletes
+  order_type public.order_type not null default 'takeout',
+  table_number text,             -- only meaningful when order_type = 'dine_in'
+  cancel_reason text,            -- required when status is set to 'cancelled'
   created_at timestamptz not null default now(),
   ready_at timestamptz,
   completed_at timestamptz
@@ -114,7 +118,12 @@ create table public.time_logs (
     case when clock_out is null then null
     else round(extract(epoch from (clock_out - clock_in)) / 3600.0, 2)
     end
-  ) stored
+  ) stored,
+  -- End-of-shift cash drawer reconciliation (cashiers only; null for other
+  -- roles, and null until the shift's clock-out cash count is entered).
+  expected_cash numeric(10,2),
+  counted_cash numeric(10,2),
+  cash_diff numeric(10,2) generated always as (counted_cash - expected_cash) stored
 );
 
 -- ----------------------------------------------------------------------------

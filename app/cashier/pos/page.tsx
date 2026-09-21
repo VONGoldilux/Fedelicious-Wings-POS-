@@ -7,7 +7,20 @@ import { useAuth } from "@/lib/auth-context";
 import { formatPeso } from "@/lib/utils";
 import ReceiptModal from "@/components/ReceiptModal";
 import { WEEKDAYS } from "@/lib/types";
-import type { CartLine, Order, PaymentMethod, Product, Promotion } from "@/lib/types";
+import type {
+  CartLine,
+  Order,
+  OrderType,
+  PaymentMethod,
+  Product,
+  Promotion,
+} from "@/lib/types";
+
+const ORDER_TYPE_LABEL: Record<OrderType, string> = {
+  dine_in: "Dine-in",
+  takeout: "Takeout",
+  delivery: "Delivery",
+};
 
 // ---------------------------------------------------------------------------
 // Promo eligibility + discount math. A promo is "eligible" for the current
@@ -89,6 +102,8 @@ export default function CashierPOSPage() {
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
+  const [orderType, setOrderType] = useState<OrderType>("takeout");
+  const [tableNumber, setTableNumber] = useState("");
 
   // ---- Load menu -----------------------------------------------------
   useEffect(() => {
@@ -190,6 +205,14 @@ export default function CashierPOSPage() {
     setCart((prev) => prev.filter((l) => l.product.id !== productId));
   }
 
+  function setLineNote(productId: string, note: string) {
+    setCart((prev) =>
+      prev.map((l) =>
+        l.product.id === productId ? { ...l, special_instructions: note } : l
+      )
+    );
+  }
+
   const subtotal = cart.reduce(
     (sum, l) => sum + l.product.price * l.quantity,
     0
@@ -240,6 +263,8 @@ export default function CashierPOSPage() {
           cashier_id: profile.id,
           promo_id: selectedPromo?.id ?? null,
           promo_name: selectedPromo?.name ?? null,
+          order_type: orderType,
+          table_number: orderType === "dine_in" ? tableNumber.trim() || null : null,
         })
         .select("id, order_number")
         .single();
@@ -252,6 +277,7 @@ export default function CashierPOSPage() {
         product_name: l.product.name,
         unit_price: l.product.price,
         quantity: l.quantity,
+        special_instructions: l.special_instructions?.trim() || null,
       }));
 
       // A "free item" promo adds its reward as its own ₱0 line, rather than
@@ -264,6 +290,7 @@ export default function CashierPOSPage() {
           product_name: `${freeBonus.product_name} (Free — ${selectedPromo?.name})`,
           unit_price: 0,
           quantity: freeBonus.quantity,
+          special_instructions: null,
         });
       }
 
@@ -287,6 +314,9 @@ export default function CashierPOSPage() {
         cashier_id: profile.id,
         promo_id: selectedPromo?.id ?? null,
         promo_name: selectedPromo?.name ?? null,
+        order_type: orderType,
+        table_number: orderType === "dine_in" ? tableNumber.trim() || null : null,
+        cancel_reason: null,
         created_at: new Date().toISOString(),
         ready_at: null,
         completed_at: null,
@@ -295,6 +325,8 @@ export default function CashierPOSPage() {
       setCart([]);
       setTendered("");
       setSelectedPromoId(null);
+      setOrderType("takeout");
+      setTableNumber("");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Checkout failed.");
     } finally {
@@ -406,41 +438,73 @@ export default function CashierPOSPage() {
           Current order
         </h2>
 
+        <div className="mb-3 flex gap-1 rounded-md border border-char-700/20 bg-char-800/5 p-1">
+          {(Object.keys(ORDER_TYPE_LABEL) as OrderType[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setOrderType(t)}
+              className={`flex-1 rounded px-2 py-1.5 text-xs font-medium ${
+                orderType === t
+                  ? "bg-ember-500 text-white"
+                  : "text-char-700/70 hover:bg-char-800/10"
+              }`}
+            >
+              {ORDER_TYPE_LABEL[t]}
+            </button>
+          ))}
+        </div>
+        {orderType === "dine_in" && (
+          <input
+            value={tableNumber}
+            onChange={(e) => setTableNumber(e.target.value)}
+            placeholder="Table number"
+            className="mb-3 w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+          />
+        )}
+
         {cart.length === 0 ? (
           <p className="text-sm text-char-700/50">Tap items to add them.</p>
         ) : (
           <div className="mb-4 max-h-80 space-y-3 overflow-y-auto pr-1">
             {cart.map((l) => (
-              <div key={l.product.id} className="flex items-center gap-2">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-char-900">
-                    {l.product.name}
-                  </p>
-                  <p className="text-xs text-char-700/50">
-                    {formatPeso(l.product.price)} each
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5">
+              <div key={l.product.id} className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-char-900">
+                      {l.product.name}
+                    </p>
+                    <p className="text-xs text-char-700/50">
+                      {formatPeso(l.product.price)} each
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => changeQty(l.product.id, -1)}
+                      className="h-6 w-6 rounded border border-char-700/20 text-char-700"
+                    >
+                      −
+                    </button>
+                    <span className="w-5 text-center text-sm">{l.quantity}</span>
+                    <button
+                      onClick={() => changeQty(l.product.id, 1)}
+                      className="h-6 w-6 rounded border border-char-700/20 text-char-700"
+                    >
+                      +
+                    </button>
+                  </div>
                   <button
-                    onClick={() => changeQty(l.product.id, -1)}
-                    className="h-6 w-6 rounded border border-char-700/20 text-char-700"
+                    onClick={() => removeLine(l.product.id)}
+                    className="ml-1 text-xs text-ember-600 hover:underline"
                   >
-                    −
-                  </button>
-                  <span className="w-5 text-center text-sm">{l.quantity}</span>
-                  <button
-                    onClick={() => changeQty(l.product.id, 1)}
-                    className="h-6 w-6 rounded border border-char-700/20 text-char-700"
-                  >
-                    +
+                    Remove
                   </button>
                 </div>
-                <button
-                  onClick={() => removeLine(l.product.id)}
-                  className="ml-1 text-xs text-ember-600 hover:underline"
-                >
-                  Remove
-                </button>
+                <input
+                  value={l.special_instructions ?? ""}
+                  onChange={(e) => setLineNote(l.product.id, e.target.value)}
+                  placeholder="Note (e.g. no onions, extra spicy)"
+                  className="w-full rounded border border-char-700/15 px-2 py-1 text-xs text-char-700 placeholder:text-char-700/30 focus:border-ember-500 focus:outline-none"
+                />
               </div>
             ))}
             {freeBonus && (

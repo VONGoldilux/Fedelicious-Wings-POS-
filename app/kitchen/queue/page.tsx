@@ -268,12 +268,25 @@ function OrderCard({
         </span>
       </div>
 
+      <div className="mb-2">
+        <span className="rounded-full bg-char-800/5 px-2 py-0.5 text-xs font-medium capitalize text-char-700">
+          {order.order_type === "dine_in"
+            ? `Dine-in${order.table_number ? ` · Table ${order.table_number}` : ""}`
+            : order.order_type.replace("_", " ")}
+        </span>
+      </div>
+
       <ul className="mb-3 space-y-1 text-sm">
         {order.order_items?.map((it) => (
-          <li key={it.id} className="flex justify-between text-char-800">
-            <span>
-              {it.quantity}× {it.product_name}
-            </span>
+          <li key={it.id} className="text-char-800">
+            <div className="flex justify-between">
+              <span>
+                {it.quantity}× {it.product_name}
+              </span>
+            </div>
+            {it.special_instructions && (
+              <p className="text-xs italic text-ember-600">{it.special_instructions}</p>
+            )}
           </li>
         ))}
       </ul>
