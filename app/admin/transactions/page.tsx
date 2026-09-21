@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatDateTime, formatPeso, paymentMethodLabel } from "@/lib/utils";
 import ReceiptModal from "@/components/ReceiptModal";
 import CancelOrderModal from "@/components/CancelOrderModal";
+import SetDeliveryRiderModal from "@/components/SetDeliveryRiderModal";
 import type { Order } from "@/lib/types";
 
 type OrderWithCashier = Order & { profiles: { full_name: string } | null };
@@ -39,6 +40,7 @@ export default function AdminTransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [viewingOrder, setViewingOrder] = useState<OrderWithCashier | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState<OrderWithCashier | null>(null);
+  const [riderOrder, setRiderOrder] = useState<OrderWithCashier | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -81,6 +83,18 @@ export default function AdminTransactionsPage() {
       )
     );
     setCancellingOrder(null);
+  }
+
+  async function confirmRider(name: string) {
+    if (!riderOrder) return;
+    await supabase
+      .from("orders")
+      .update({ delivered_by: name })
+      .eq("id", riderOrder.id);
+    setOrders((prev) =>
+      prev.map((o) => (o.id === riderOrder.id ? { ...o, delivered_by: name } : o))
+    );
+    setRiderOrder(null);
   }
 
   return (
@@ -163,6 +177,14 @@ export default function AdminTransactionsPage() {
                     {o.order_type === "dine_in" && o.table_number
                       ? ` · Table ${o.table_number}`
                       : ""}
+                    {o.order_type === "delivery" && (
+                      <button
+                        onClick={() => setRiderOrder(o)}
+                        className="ml-1.5 text-xs text-ember-600 hover:underline"
+                      >
+                        {o.delivered_by ? `· ${o.delivered_by}` : "· Set rider"}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-char-700/70">
                     {o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items
@@ -221,6 +243,15 @@ export default function AdminTransactionsPage() {
           orderNumber={cancellingOrder.order_number}
           onConfirm={confirmCancel}
           onClose={() => setCancellingOrder(null)}
+        />
+      )}
+
+      {riderOrder && (
+        <SetDeliveryRiderModal
+          orderNumber={riderOrder.order_number}
+          currentName={riderOrder.delivered_by}
+          onConfirm={confirmRider}
+          onClose={() => setRiderOrder(null)}
         />
       )}
     </div>

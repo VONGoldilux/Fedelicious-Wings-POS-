@@ -45,6 +45,11 @@ export default function ReceiptModal({
             ? ` · Table ${order.table_number}`
             : ""}
         </p>
+        {order.order_type === "delivery" && order.delivered_by && (
+          <p className="mb-1 text-xs text-char-700/50">
+            Delivered by {order.delivered_by}
+          </p>
+        )}
         {cashierName && (
           <p className="mb-3 text-xs text-char-700/50">Served by {cashierName}</p>
         )}
@@ -82,6 +87,18 @@ export default function ReceiptModal({
             <div className="flex justify-between text-green-700">
               <span>Senior/PWD discount (20%)</span>
               <span>−{formatPeso(order.senior_pwd_discount_total)}</span>
+            </div>
+          )}
+          {order.container_fee > 0 && (
+            <div className="flex justify-between text-char-700/70">
+              <span>Containers ({order.container_count})</span>
+              <span>+{formatPeso(order.container_fee)}</span>
+            </div>
+          )}
+          {order.delivery_fee > 0 && (
+            <div className="flex justify-between text-char-700/70">
+              <span>Delivery fee</span>
+              <span>+{formatPeso(order.delivery_fee)}</span>
             </div>
           )}
           <div className="flex justify-between text-base font-semibold text-char-900">

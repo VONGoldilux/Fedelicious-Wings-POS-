@@ -107,6 +107,9 @@ export default function CashierPOSPage() {
   const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
   const [orderType, setOrderType] = useState<OrderType>("takeout");
   const [tableNumber, setTableNumber] = useState("");
+  const [deliveredBy, setDeliveredBy] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState("");
+  const [containerCount, setContainerCount] = useState(0);
   const [seniorPwdEntries, setSeniorPwdEntries] = useState<SeniorPwdEntry[]>([]);
   const [showSeniorPwdForm, setShowSeniorPwdForm] = useState(false);
   const [newEntryType, setNewEntryType] = useState<SeniorPwdIdType>("senior");
@@ -364,7 +367,27 @@ export default function CashierPOSPage() {
     setSeniorPwdEntries((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const total = Math.max(0, subtotal - discountAmount - seniorPwdDiscountTotal);
+  // Containers only apply to takeout/delivery (dine-in uses house plates);
+  // delivery fee/rider only apply to delivery. Reset whichever no longer
+  // applies whenever the cashier switches order type.
+  useEffect(() => {
+    if (orderType === "dine_in") {
+      setContainerCount(0);
+    }
+    if (orderType !== "delivery") {
+      setDeliveredBy("");
+      setDeliveryFee("");
+    }
+  }, [orderType]);
+
+  const containerFeeAmount = orderType !== "dine_in" ? containerCount * 10 : 0;
+  const deliveryFeeAmount =
+    orderType === "delivery" ? Number(deliveryFee || 0) : 0;
+
+  const total = Math.max(
+    0,
+    subtotal - discountAmount - seniorPwdDiscountTotal + containerFeeAmount + deliveryFeeAmount
+  );
   const change =
     paymentMethod === "cash" && tendered
       ? Math.max(0, Number(tendered) - total)
@@ -396,6 +419,10 @@ export default function CashierPOSPage() {
           table_number: orderType === "dine_in" ? tableNumber.trim() || null : null,
           senior_pwd_discount_total: seniorPwdDiscountTotal,
           senior_pwd_details: seniorPwdEntries,
+          delivered_by: orderType === "delivery" ? deliveredBy.trim() || null : null,
+          delivery_fee: deliveryFeeAmount,
+          container_count: containerCount,
+          container_fee: containerFeeAmount,
         })
         .select("id, order_number")
         .single();
@@ -452,6 +479,10 @@ export default function CashierPOSPage() {
         cancel_reason: null,
         senior_pwd_discount_total: seniorPwdDiscountTotal,
         senior_pwd_details: seniorPwdEntries,
+        delivered_by: orderType === "delivery" ? deliveredBy.trim() || null : null,
+        delivery_fee: deliveryFeeAmount,
+        container_count: containerCount,
+        container_fee: containerFeeAmount,
         created_at: new Date().toISOString(),
         ready_at: null,
         completed_at: null,
@@ -464,6 +495,9 @@ export default function CashierPOSPage() {
       setOrderType("takeout");
       setTableNumber("");
       setSeniorPwdEntries([]);
+      setDeliveredBy("");
+      setDeliveryFee("");
+      setContainerCount(0);
     } catch (err) {
       const message =
         err instanceof Error
@@ -672,6 +706,57 @@ export default function CashierPOSPage() {
             placeholder="Table number"
             className="mb-3 w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
           />
+        )}
+
+        {orderType === "delivery" && (
+          <div className="mb-3 space-y-2">
+            <input
+              value={deliveredBy}
+              onChange={(e) => setDeliveredBy(e.target.value)}
+              placeholder="Delivered by (rider name)"
+              className="w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+            />
+            <div>
+              <label className="mb-1 block text-xs font-medium text-char-700/70">
+                Delivery fee (₱) — based on distance
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={deliveryFee}
+                onChange={(e) => setDeliveryFee(e.target.value)}
+                placeholder="0.00"
+                className="w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+              />
+            </div>
+          </div>
+        )}
+
+        {orderType !== "dine_in" && (
+          <div className="mb-3 flex items-center justify-between rounded-md border border-char-700/15 px-3 py-2">
+            <div>
+              <p className="text-sm text-char-700">Containers</p>
+              <p className="text-xs text-char-700/50">₱10 each</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setContainerCount((n) => Math.max(0, n - 1))}
+                className="h-7 w-7 rounded border border-char-700/20 text-char-700"
+              >
+                −
+              </button>
+              <span className="w-5 text-center text-sm">{containerCount}</span>
+              <button
+                type="button"
+                onClick={() => setContainerCount((n) => n + 1)}
+                className="h-7 w-7 rounded border border-char-700/20 text-char-700"
+              >
+                +
+              </button>
+            </div>
+          </div>
         )}
 
         {cart.length === 0 ? (
@@ -936,6 +1021,18 @@ export default function CashierPOSPage() {
             <div className="flex justify-between text-green-700">
               <span>Senior/PWD discount ({seniorPwdEntries.length})</span>
               <span>−{formatPeso(seniorPwdDiscountTotal)}</span>
+            </div>
+          )}
+          {containerFeeAmount > 0 && (
+            <div className="flex justify-between text-char-700/70">
+              <span>Containers ({containerCount})</span>
+              <span>+{formatPeso(containerFeeAmount)}</span>
+            </div>
+          )}
+          {deliveryFeeAmount > 0 && (
+            <div className="flex justify-between text-char-700/70">
+              <span>Delivery fee</span>
+              <span>+{formatPeso(deliveryFeeAmount)}</span>
             </div>
           )}
           <div className="flex justify-between text-base font-semibold text-char-900">

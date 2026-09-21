@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { formatDateTime, formatPeso, paymentMethodLabel } from "@/lib/utils";
 import ReceiptModal from "@/components/ReceiptModal";
 import CancelOrderModal from "@/components/CancelOrderModal";
+import SetDeliveryRiderModal from "@/components/SetDeliveryRiderModal";
 import type { Order } from "@/lib/types";
 
 const CANCELLABLE_STATUSES = ["queued", "preparing", "ready"];
@@ -39,6 +40,7 @@ export default function CashierTransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
+  const [riderOrder, setRiderOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -98,6 +100,18 @@ export default function CashierTransactionsPage() {
       )
     );
     setCancellingOrder(null);
+  }
+
+  async function confirmRider(name: string) {
+    if (!riderOrder) return;
+    await supabase
+      .from("orders")
+      .update({ delivered_by: name })
+      .eq("id", riderOrder.id);
+    setOrders((prev) =>
+      prev.map((o) => (o.id === riderOrder.id ? { ...o, delivered_by: name } : o))
+    );
+    setRiderOrder(null);
   }
 
   return (
@@ -173,6 +187,14 @@ export default function CashierTransactionsPage() {
                     {o.order_type === "dine_in" && o.table_number
                       ? ` · Table ${o.table_number}`
                       : ""}
+                    {o.order_type === "delivery" && (
+                      <button
+                        onClick={() => setRiderOrder(o)}
+                        className="ml-1.5 text-xs text-ember-600 hover:underline"
+                      >
+                        {o.delivered_by ? `· ${o.delivered_by}` : "· Set rider"}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-char-700/70">
                     {formatDateTime(o.created_at)}
@@ -242,6 +264,15 @@ export default function CashierTransactionsPage() {
           orderNumber={cancellingOrder.order_number}
           onConfirm={confirmCancel}
           onClose={() => setCancellingOrder(null)}
+        />
+      )}
+
+      {riderOrder && (
+        <SetDeliveryRiderModal
+          orderNumber={riderOrder.order_number}
+          currentName={riderOrder.delivered_by}
+          onConfirm={confirmRider}
+          onClose={() => setRiderOrder(null)}
         />
       )}
     </div>

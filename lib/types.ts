@@ -81,6 +81,10 @@ export interface Order {
   cancel_reason: string | null;
   senior_pwd_discount_total: number;
   senior_pwd_details: SeniorPwdEntry[];
+  delivered_by: string | null;
+  delivery_fee: number;
+  container_count: number;
+  container_fee: number;
   created_at: string;
   ready_at: string | null;
   completed_at: string | null;
@@ -140,6 +144,21 @@ export interface TimeLog {
   expected_cash: number | null;
   counted_cash: number | null;
   cash_diff: number | null;
+}
+
+// Proof-of-payment record for a staff member's semi-monthly payroll period.
+export interface PayrollPayment {
+  id: string;
+  staff_id: string;
+  period_start: string; // date, "YYYY-MM-DD"
+  period_end: string; // date, "YYYY-MM-DD"
+  total_hours: number;
+  hourly_rate: number;
+  gross_pay: number;
+  paid_at: string;
+  paid_by: string | null;
+  notes: string | null;
+  created_at: string;
 }
 
 // Cart line used only on the client while building an order in the POS.

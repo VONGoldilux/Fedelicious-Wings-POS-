@@ -453,7 +453,64 @@ to authenticated
 using (public.is_super_admin());
 
 -- ----------------------------------------------------------------------------
--- 14. SEED: first Super Admin
+-- 14. PAYROLL PAYMENTS
+--     Proof-of-payment record for the semi-monthly payroll cycle (paid on
+--     the 15th and last day of each month). Super admin marks a staff
+--     member's period as paid once; the row itself is the receipt/proof —
+--     staff can see their own, admin can see and create all.
+-- ----------------------------------------------------------------------------
+create table public.payroll_payments (
+  id uuid primary key default gen_random_uuid(),
+  staff_id uuid not null references public.profiles(id) on delete cascade,
+  period_start date not null,
+  period_end date not null,
+  total_hours numeric(6,2) not null,
+  hourly_rate numeric(10,2) not null,
+  gross_pay numeric(10,2) not null,
+  paid_at timestamptz not null default now(),
+  paid_by uuid references public.profiles(id),
+  notes text,
+  created_at timestamptz not null default now(),
+  unique (staff_id, period_start, period_end)
+);
+
+create index idx_payroll_payments_staff on public.payroll_payments (staff_id, period_start desc);
+
+alter table public.payroll_payments enable row level security;
+
+create policy "payroll_payments_select"
+on public.payroll_payments for select
+to authenticated
+using (staff_id = auth.uid() or public.is_super_admin());
+
+create policy "payroll_payments_insert_super_admin"
+on public.payroll_payments for insert
+to authenticated
+with check (public.is_super_admin());
+
+create policy "payroll_payments_delete_super_admin"
+on public.payroll_payments for delete
+to authenticated
+using (public.is_super_admin());
+
+-- ----------------------------------------------------------------------------
+-- 15. DELIVERY + CONTAINER FEES
+--     delivered_by is a free-text name/note (whoever's actually handing off
+--     the delivery — often not a formal "employee", e.g. a habal-habal rider
+--     hired per trip) so it's proof-of-handoff, not an FK to profiles.
+--     delivery_fee is entered by the cashier per order (varies by distance —
+--     no geocoding here, just staff judgment). container_fee is a flat ₱10
+--     per container, for takeout/delivery orders only (dine-in uses house
+--     plates).
+-- ----------------------------------------------------------------------------
+alter table public.orders
+  add column if not exists delivered_by text,
+  add column if not exists delivery_fee numeric(10,2) not null default 0,
+  add column if not exists container_count integer not null default 0,
+  add column if not exists container_fee numeric(10,2) not null default 0;
+
+-- ----------------------------------------------------------------------------
+-- 16. SEED: first Super Admin
 --     Sign up a user through the app's /login page first (Supabase Auth
 --     creates the auth.users row + a 'cashier' profile automatically via the
 --     trigger above), THEN run this to promote that one account:
