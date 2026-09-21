@@ -672,6 +672,11 @@ export default function CashierPOSPage() {
                 <p className="text-sm font-semibold text-ember-600">
                   {formatPeso(p.price)}
                 </p>
+                {p.description && (
+                  <p className="mt-0.5 line-clamp-2 text-xs text-char-700/50">
+                    {p.description}
+                  </p>
+                )}
               </div>
             </button>
           ))}
