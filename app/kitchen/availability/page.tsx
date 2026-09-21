@@ -10,6 +10,9 @@ export default function KitchenAvailabilityPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [updatingCategory, setUpdatingCategory] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [unavailableOnly, setUnavailableOnly] = useState(false);
 
   async function loadProducts() {
     setLoading(true);
@@ -44,15 +47,43 @@ export default function KitchenAvailabilityPage() {
     setUpdatingId(null);
   }
 
+  async function setCategoryAvailability(category: string, available: boolean) {
+    const targets = products.filter((p) => p.category === category);
+    setUpdatingCategory(category);
+    await Promise.all(
+      targets.map((p) =>
+        supabase.rpc("set_product_availability", {
+          product_id: p.id,
+          available,
+        })
+      )
+    );
+    setProducts((prev) =>
+      prev.map((item) =>
+        item.category === category ? { ...item, is_available: available } : item
+      )
+    );
+    setUpdatingCategory(null);
+  }
+
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      if (unavailableOnly && p.is_available) return false;
+      if (q && !p.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [products, search, unavailableOnly]);
+
   const byCategory = useMemo(() => {
     const map = new Map<string, Product[]>();
-    for (const p of products) {
+    for (const p of filteredProducts) {
       const list = map.get(p.category) ?? [];
       list.push(p);
       map.set(p.category, list);
     }
     return Array.from(map.entries());
-  }, [products]);
+  }, [filteredProducts]);
 
   return (
     <div>
@@ -66,17 +97,57 @@ export default function KitchenAvailabilityPage() {
         </p>
       </div>
 
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search menu items…"
+          className="w-full max-w-sm rounded-md border border-char-700/20 bg-white px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+        />
+        <label className="flex items-center gap-2 text-sm text-char-700">
+          <input
+            type="checkbox"
+            checked={unavailableOnly}
+            onChange={(e) => setUnavailableOnly(e.target.checked)}
+          />
+          Show unavailable only
+        </label>
+      </div>
+
       {loading ? (
         <p className="text-char-700/60">Loading menu…</p>
       ) : products.length === 0 ? (
         <p className="text-char-700/60">No menu items yet.</p>
+      ) : byCategory.length === 0 ? (
+        <p className="text-char-700/60">No items match your search.</p>
       ) : (
         <div className="space-y-6">
           {byCategory.map(([category, items]) => (
             <div key={category}>
-              <h2 className="mb-2 font-display font-semibold text-char-900">
-                {category}
-              </h2>
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="font-display font-semibold text-char-900">
+                  {category}
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCategoryAvailability(category, false)}
+                    disabled={updatingCategory === category}
+                    className="rounded border border-char-700/20 px-2.5 py-1 text-xs font-medium text-char-800 hover:bg-char-800/5 disabled:opacity-50"
+                  >
+                    {updatingCategory === category
+                      ? "Saving…"
+                      : `Mark all ${category} unavailable`}
+                  </button>
+                  <button
+                    onClick={() => setCategoryAvailability(category, true)}
+                    disabled={updatingCategory === category}
+                    className="rounded border border-char-700/20 px-2.5 py-1 text-xs font-medium text-char-800 hover:bg-char-800/5 disabled:opacity-50"
+                  >
+                    Mark all available
+                  </button>
+                </div>
+              </div>
               <div className="overflow-hidden rounded-card border border-char-700/10 bg-white shadow-sm">
                 <table className="w-full text-left text-sm">
                   <tbody className="divide-y divide-char-700/10">
