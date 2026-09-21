@@ -880,6 +880,25 @@ export default function CashierPOSPage() {
               className="mb-2 w-full rounded-md border border-char-700/20 px-3 py-2 text-sm"
               placeholder="0.00"
             />
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {[20, 50, 100, 200, 500, 1000].map((bill) => (
+                <button
+                  key={bill}
+                  type="button"
+                  onClick={() => setTendered(String(bill))}
+                  className="rounded border border-char-700/20 px-2.5 py-1 text-xs font-medium text-char-700 hover:border-ember-500 hover:text-ember-600"
+                >
+                  ₱{bill}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setTendered(String(total))}
+                className="rounded border border-char-700/20 px-2.5 py-1 text-xs font-medium text-char-700 hover:border-ember-500 hover:text-ember-600"
+              >
+                Exact
+              </button>
+            </div>
             <div className="mb-3 flex justify-between text-sm">
               <span className="text-char-700/70">Change</span>
               <span className="font-medium text-char-900">
