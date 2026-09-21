@@ -6,7 +6,17 @@ import { createClient } from "@/lib/supabase/client";
 import { formatPeso } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
-const CATEGORY_OPTIONS = ["Wings", "Beverages", "Pasta", "Snacks", "Add-ons"];
+const CATEGORY_OPTIONS = [
+  "Wings",
+  "Rice Meals",
+  "Soups",
+  "Noodles",
+  "Pasta",
+  "Party Meals",
+  "Beverages",
+  "Snacks",
+  "Add-ons",
+];
 
 const EMPTY_FORM = {
   id: null as string | null,
