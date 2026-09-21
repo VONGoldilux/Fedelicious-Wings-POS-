@@ -11,6 +11,7 @@ export default function KitchenQueuePage() {
   const supabase = createClient();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [handledToday, setHandledToday] = useState(0);
   const [, forceTick] = useState(0);
 
   const loadOrders = useCallback(async () => {
@@ -23,9 +24,23 @@ export default function KitchenQueuePage() {
     setLoading(false);
   }, [supabase]);
 
+  // Orders the kitchen has moved to "ready" (or beyond) today — a count of
+  // work done, independent of whether the cashier has completed them since.
+  const loadHandledToday = useCallback(async () => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const { count } = await supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .not("ready_at", "is", null)
+      .gte("ready_at", startOfDay.toISOString());
+    setHandledToday(count ?? 0);
+  }, [supabase]);
+
   useEffect(() => {
     loadOrders();
-  }, [loadOrders]);
+    loadHandledToday();
+  }, [loadOrders, loadHandledToday]);
 
   // ---- Realtime: new orders appear instantly, status changes sync live ----
   useEffect(() => {
@@ -49,6 +64,7 @@ export default function KitchenQueuePage() {
               o.id === updated.id ? { ...o, ...updated } : o
             );
           });
+          if (updated.ready_at) loadHandledToday();
         }
       )
       .on(
@@ -82,13 +98,21 @@ export default function KitchenQueuePage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-char-900">
-          Kitchen Display
-        </h1>
-        <p className="text-sm text-char-700/70">
-          Orders update live — no refresh needed.
-        </p>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-char-900">
+            Kitchen Display
+          </h1>
+          <p className="text-sm text-char-700/70">
+            Orders update live — no refresh needed.
+          </p>
+        </div>
+        <div className="rounded-card border border-char-700/10 bg-white px-4 py-2.5 shadow-sm">
+          <p className="text-xs text-char-700/50">Handled today</p>
+          <p className="font-display text-xl font-semibold text-green-600">
+            {handledToday}
+          </p>
+        </div>
       </div>
 
       {loading ? (

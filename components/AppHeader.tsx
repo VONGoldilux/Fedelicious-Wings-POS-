@@ -12,7 +12,10 @@ const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
     { href: "/admin/staff", label: "Staff" },
     { href: "/admin/payroll", label: "Payroll" },
   ],
-  cashier: [{ href: "/cashier/pos", label: "Cashier" }],
+  cashier: [
+    { href: "/cashier/pos", label: "Cashier" },
+    { href: "/cashier/transactions", label: "Transactions" },
+  ],
   kitchen: [{ href: "/kitchen/queue", label: "Kitchen" }],
 };
 
