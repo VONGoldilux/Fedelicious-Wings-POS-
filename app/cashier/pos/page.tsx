@@ -15,6 +15,7 @@ export default function CashierPOSPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [category, setCategory] = useState<string>("All");
+  const [search, setSearch] = useState("");
   const [paying, setPaying] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [tendered, setTendered] = useState("");
@@ -75,11 +76,13 @@ export default function CashierPOSPage() {
     [products]
   );
 
-  const visibleProducts = useMemo(
-    () =>
-      category === "All" ? products : products.filter((p) => p.category === category),
-    [products, category]
-  );
+  const visibleProducts = useMemo(() => {
+    const byCategory =
+      category === "All" ? products : products.filter((p) => p.category === category);
+    const q = search.trim().toLowerCase();
+    if (!q) return byCategory;
+    return byCategory.filter((p) => p.name.toLowerCase().includes(q));
+  }, [products, category, search]);
 
   function addToCart(product: Product) {
     setCart((prev) => {
@@ -216,6 +219,13 @@ export default function CashierPOSPage() {
 
       {/* ---------- Menu grid ---------- */}
       <div>
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search menu items…"
+          className="mb-3 w-full rounded-md border border-char-700/20 bg-white px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+        />
         <div className="mb-4 flex gap-2 overflow-x-auto">
           {categories.map((c) => (
             <button
@@ -231,6 +241,10 @@ export default function CashierPOSPage() {
             </button>
           ))}
         </div>
+
+        {visibleProducts.length === 0 && (
+          <p className="text-sm text-char-700/60">No items match your search.</p>
+        )}
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
           {visibleProducts.map((p) => (
