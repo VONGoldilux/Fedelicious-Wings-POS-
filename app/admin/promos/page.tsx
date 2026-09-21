@@ -47,6 +47,7 @@ export default function PromosPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [bundleSearch, setBundleSearch] = useState("");
 
   async function loadPromotions() {
     setLoading(true);
@@ -74,9 +75,16 @@ export default function PromosPage() {
     [products]
   );
 
+  const bundleSearchResults = useMemo(() => {
+    const q = bundleSearch.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => p.name.toLowerCase().includes(q));
+  }, [products, bundleSearch]);
+
   function openNewForm() {
     setForm(EMPTY_FORM);
     setError(null);
+    setBundleSearch("");
     setShowForm(true);
   }
 
@@ -100,6 +108,7 @@ export default function PromosPage() {
       is_active: promo.is_active,
     });
     setError(null);
+    setBundleSearch("");
     setShowForm(true);
   }
 
@@ -547,23 +556,41 @@ export default function PromosPage() {
               <>
                 <label className="mb-1 block text-sm font-medium text-char-700">
                   Items in this bundle{" "}
-                  <span className="font-normal text-char-700/50">(pick 2+)</span>
+                  <span className="font-normal text-char-700/50">
+                    (pick 2+{form.bundle_product_ids.length > 0
+                      ? ` · ${form.bundle_product_ids.length} selected`
+                      : ""}
+                    )
+                  </span>
                 </label>
+                <input
+                  type="search"
+                  value={bundleSearch}
+                  onChange={(e) => setBundleSearch(e.target.value)}
+                  placeholder="Search items…"
+                  className="mb-2 w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+                />
                 <div className="mb-3 max-h-48 overflow-y-auto rounded-md border border-char-700/20 p-2">
-                  {products.map((p) => (
-                    <label
-                      key={p.id}
-                      className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-char-800/5"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={form.bundle_product_ids.includes(p.id)}
-                        onChange={() => toggleBundleProduct(p.id)}
-                      />
-                      <span className="flex-1 text-char-800">{p.name}</span>
-                      <span className="text-char-700/50">{formatPeso(p.price)}</span>
-                    </label>
-                  ))}
+                  {bundleSearchResults.length === 0 ? (
+                    <p className="px-2 py-1.5 text-sm text-char-700/50">
+                      No items match your search.
+                    </p>
+                  ) : (
+                    bundleSearchResults.map((p) => (
+                      <label
+                        key={p.id}
+                        className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-char-800/5"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={form.bundle_product_ids.includes(p.id)}
+                          onChange={() => toggleBundleProduct(p.id)}
+                        />
+                        <span className="flex-1 text-char-800">{p.name}</span>
+                        <span className="text-char-700/50">{formatPeso(p.price)}</span>
+                      </label>
+                    ))
+                  )}
                 </div>
 
                 <label className="mb-1 block text-sm font-medium text-char-700">
