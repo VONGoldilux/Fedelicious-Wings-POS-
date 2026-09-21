@@ -1,0 +1,216 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { formatTime, minutesSince } from "@/lib/utils";
+import type { Order } from "@/lib/types";
+
+const ACTIVE_STATUSES = ["queued", "preparing", "ready"] as const;
+
+export default function KitchenQueuePage() {
+  const supabase = createClient();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [, forceTick] = useState(0);
+
+  const loadOrders = useCallback(async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("*, order_items(*)")
+      .in("status", ACTIVE_STATUSES)
+      .order("created_at", { ascending: true });
+    setOrders((data as Order[]) ?? []);
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  // ---- Realtime: new orders appear instantly, status changes sync live ----
+  useEffect(() => {
+    const channel = supabase
+      .channel("kitchen-orders")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "orders" },
+        () => loadOrders()
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders" },
+        (payload) => {
+          const updated = payload.new as Order;
+          setOrders((prev) => {
+            if (!ACTIVE_STATUSES.includes(updated.status as any)) {
+              return prev.filter((o) => o.id !== updated.id);
+            }
+            return prev.map((o) =>
+              o.id === updated.id ? { ...o, ...updated } : o
+            );
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "order_items" },
+        () => loadOrders()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-render every 30s so the "minutes ago" timestamps stay fresh.
+  useEffect(() => {
+    const id = setInterval(() => forceTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  async function setStatus(orderId: string, status: Order["status"]) {
+    const patch: Partial<Order> = { status };
+    if (status === "ready") patch.ready_at = new Date().toISOString();
+    await supabase.from("orders").update(patch).eq("id", orderId);
+  }
+
+  const queued = orders.filter((o) => o.status === "queued");
+  const preparing = orders.filter((o) => o.status === "preparing");
+  const ready = orders.filter((o) => o.status === "ready");
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-semibold text-char-900">
+          Kitchen Display
+        </h1>
+        <p className="text-sm text-char-700/70">
+          Orders update live — no refresh needed.
+        </p>
+      </div>
+
+      {loading ? (
+        <p className="text-char-700/60">Loading queue…</p>
+      ) : orders.length === 0 ? (
+        <p className="text-char-700/60">No active orders. All caught up! 🍗</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <Column title="Queued" count={queued.length} accent="border-char-700/30">
+            {queued.map((o) => (
+              <OrderCard
+                key={o.id}
+                order={o}
+                primaryLabel="Start preparing"
+                onPrimary={() => setStatus(o.id, "preparing")}
+              />
+            ))}
+          </Column>
+
+          <Column title="Preparing" count={preparing.length} accent="border-mustard-500">
+            {preparing.map((o) => (
+              <OrderCard
+                key={o.id}
+                order={o}
+                primaryLabel="Mark as Ready"
+                onPrimary={() => setStatus(o.id, "ready")}
+              />
+            ))}
+          </Column>
+
+          <Column title="Ready for pickup" count={ready.length} accent="border-green-500">
+            {ready.map((o) => (
+              <OrderCard key={o.id} order={o} readOnly />
+            ))}
+          </Column>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Column({
+  title,
+  count,
+  accent,
+  children,
+}: {
+  title: string;
+  count: number;
+  accent: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <h2 className={`mb-3 border-b-2 pb-2 font-display font-semibold text-char-900 ${accent}`}>
+        {title} <span className="text-char-700/40">({count})</span>
+      </h2>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function OrderCard({
+  order,
+  primaryLabel,
+  onPrimary,
+  readOnly,
+}: {
+  order: Order;
+  primaryLabel?: string;
+  onPrimary?: () => void;
+  readOnly?: boolean;
+}) {
+  const age = minutesSince(order.created_at);
+  const urgent = age >= 15 && order.status !== "ready";
+
+  return (
+    <div
+      className={`rounded-card border bg-white p-4 shadow-sm ${
+        urgent ? "border-ember-500" : "border-char-700/10"
+      }`}
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-display font-semibold text-char-900">
+          #{order.order_number}
+        </span>
+        <span
+          className={`text-xs ${urgent ? "font-semibold text-ember-600" : "text-char-700/50"}`}
+        >
+          {formatTime(order.created_at)} · {age}m ago
+        </span>
+      </div>
+
+      <ul className="mb-3 space-y-1 text-sm">
+        {order.order_items?.map((it) => (
+          <li key={it.id} className="flex justify-between text-char-800">
+            <span>
+              {it.quantity}× {it.product_name}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {order.notes && (
+        <p className="mb-3 rounded bg-char-800/5 px-2 py-1 text-xs text-char-700/70">
+          Note: {order.notes}
+        </p>
+      )}
+
+      {!readOnly && primaryLabel && onPrimary && (
+        <button
+          onClick={onPrimary}
+          className="w-full rounded-md bg-ember-500 py-2 text-sm font-semibold text-white hover:bg-ember-600"
+        >
+          {primaryLabel}
+        </button>
+      )}
+      {readOnly && (
+        <p className="text-center text-sm font-medium text-green-600">
+          Waiting for pickup
+        </p>
+      )}
+    </div>
+  );
+}
