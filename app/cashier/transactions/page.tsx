@@ -59,6 +59,19 @@ export default function CashierTransactionsPage() {
     };
   }, [orders]);
 
+  async function markHandedOff(orderId: string) {
+    const completed_at = new Date().toISOString();
+    await supabase
+      .from("orders")
+      .update({ status: "completed", completed_at })
+      .eq("id", orderId);
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId ? { ...o, status: "completed", completed_at } : o
+      )
+    );
+  }
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -117,6 +130,7 @@ export default function CashierTransactionsPage() {
                 <th className="px-4 py-2.5">Payment</th>
                 <th className="px-4 py-2.5">Status</th>
                 <th className="px-4 py-2.5 text-right">Total</th>
+                <th className="px-4 py-2.5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-char-700/10">
@@ -145,6 +159,16 @@ export default function CashierTransactionsPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-char-900">
                     {formatPeso(o.total)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {o.status === "ready" && (
+                      <button
+                        onClick={() => markHandedOff(o.id)}
+                        className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                      >
+                        Mark handed off
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
