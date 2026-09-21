@@ -2,58 +2,96 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { formatPeso, formatDateTime } from "@/lib/utils";
-import type { Profile, TimeLog } from "@/lib/types";
+import type { PayrollPayment, Profile, TimeLog } from "@/lib/types";
 
 interface PayrollRow {
   staff: Profile;
   logs: TimeLog[];
   totalHours: number;
   totalPay: number;
+  payment: PayrollPayment | null;
+  history: PayrollPayment[];
 }
 
-function startOfWeek(d: Date) {
-  const date = new Date(d);
-  const day = date.getDay(); // 0 = Sunday
-  date.setDate(date.getDate() - day);
-  date.setHours(0, 0, 0, 0);
-  return date;
+// Payday is the 15th and last day of each month — periods are always
+// 1st–15th or 16th–end of month, never a rolling week.
+type Half = "first" | "second";
+
+function periodFor(monthStr: string, half: Half) {
+  const [y, m] = monthStr.split("-").map(Number);
+  if (half === "first") {
+    return {
+      start: `${monthStr}-01`,
+      end: `${monthStr}-15`,
+    };
+  }
+  const lastDay = new Date(y, m, 0).getDate(); // day 0 of next month = last day of this month
+  return {
+    start: `${monthStr}-16`,
+    end: `${monthStr}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+function defaultMonthAndHalf(): { month: string; half: Half } {
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return { month, half: now.getDate() <= 15 ? "first" : "second" };
 }
 
 export default function PayrollPage() {
   const supabase = createClient();
+  const { profile } = useAuth();
+
   const [staff, setStaff] = useState<Profile[]>([]);
   const [logs, setLogs] = useState<TimeLog[]>([]);
+  const [payments, setPayments] = useState<PayrollPayment[]>([]);
+  const [allHistory, setAllHistory] = useState<PayrollPayment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [rangeStart, setRangeStart] = useState(() =>
-    startOfWeek(new Date()).toISOString().slice(0, 10)
-  );
+  const [{ month, half }, setPeriod] = useState(defaultMonthAndHalf);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [paying, setPaying] = useState<string | null>(null);
+
+  const { start: periodStart, end: periodEnd } = periodFor(month, half);
 
   async function loadData() {
     setLoading(true);
-    const rangeEnd = new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate() + 7);
+    const rangeStart = new Date(`${periodStart}T00:00:00`);
+    const rangeEnd = new Date(`${periodEnd}T00:00:00`);
+    rangeEnd.setDate(rangeEnd.getDate() + 1); // inclusive of the last day
 
-    const [{ data: staffData }, { data: logsData }] = await Promise.all([
-      supabase.from("profiles").select("*").order("full_name"),
-      supabase
-        .from("time_logs")
-        .select("*")
-        .gte("clock_in", new Date(rangeStart).toISOString())
-        .lt("clock_in", rangeEnd.toISOString())
-        .order("clock_in", { ascending: false }),
-    ]);
+    const [{ data: staffData }, { data: logsData }, { data: paymentsData }, { data: historyData }] =
+      await Promise.all([
+        supabase.from("profiles").select("*").order("full_name"),
+        supabase
+          .from("time_logs")
+          .select("*")
+          .gte("clock_in", rangeStart.toISOString())
+          .lt("clock_in", rangeEnd.toISOString())
+          .order("clock_in", { ascending: false }),
+        supabase
+          .from("payroll_payments")
+          .select("*")
+          .eq("period_start", periodStart)
+          .eq("period_end", periodEnd),
+        supabase
+          .from("payroll_payments")
+          .select("*")
+          .order("period_start", { ascending: false }),
+      ]);
 
     setStaff(staffData ?? []);
     setLogs(logsData ?? []);
+    setPayments((paymentsData as PayrollPayment[]) ?? []);
+    setAllHistory((historyData as PayrollPayment[]) ?? []);
     setLoading(false);
   }
 
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rangeStart]);
+  }, [periodStart, periodEnd]);
 
   const rows: PayrollRow[] = useMemo(() => {
     return staff
@@ -68,12 +106,41 @@ export default function PayrollPage() {
           logs: staffLogs,
           totalHours: Math.round(totalHours * 100) / 100,
           totalPay: Math.round(totalHours * s.hourly_rate * 100) / 100,
+          payment: payments.find((p) => p.staff_id === s.id) ?? null,
+          history: allHistory.filter((p) => p.staff_id === s.id),
         };
       })
-      .filter((r) => r.logs.length > 0);
-  }, [staff, logs]);
+      .filter((r) => r.logs.length > 0 || r.payment);
+  }, [staff, logs, payments, allHistory]);
 
   const grandTotal = rows.reduce((sum, r) => sum + r.totalPay, 0);
+
+  async function markPaid(row: PayrollRow) {
+    if (!profile || row.payment) return;
+    setPaying(row.staff.id);
+    const { data, error } = await supabase
+      .from("payroll_payments")
+      .insert({
+        staff_id: row.staff.id,
+        period_start: periodStart,
+        period_end: periodEnd,
+        total_hours: row.totalHours,
+        hourly_rate: row.staff.hourly_rate,
+        gross_pay: row.totalPay,
+        paid_by: profile.id,
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      const payment = data as PayrollPayment;
+      setPayments((prev) => [...prev, payment]);
+      setAllHistory((prev) => [payment, ...prev]);
+    } else if (error) {
+      alert(error.message);
+    }
+    setPaying(null);
+  }
 
   return (
     <div>
@@ -83,26 +150,54 @@ export default function PayrollPage() {
             Payroll
           </h1>
           <p className="text-sm text-char-700/70">
-            Hours &amp; pay computed from clock-in/out logs × hourly rate.
+            Paid twice a month — the 15th and the last day of the month.
           </p>
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-char-700/70">
-            Week starting
-          </label>
-          <input
-            type="date"
-            value={rangeStart}
-            onChange={(e) => setRangeStart(e.target.value)}
-            className="rounded-md border border-char-700/20 bg-white px-3 py-2 text-sm"
-          />
+        <div className="flex items-end gap-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-char-700/70">
+              Month
+            </label>
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setPeriod({ month: e.target.value, half })}
+              className="rounded-md border border-char-700/20 bg-white px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="flex gap-1 rounded-md border border-char-700/20 bg-white p-1">
+            <button
+              onClick={() => setPeriod({ month, half: "first" })}
+              className={`rounded px-3 py-1.5 text-sm font-medium ${
+                half === "first"
+                  ? "bg-ember-500 text-white"
+                  : "text-char-700/70 hover:bg-char-800/5"
+              }`}
+            >
+              1–15
+            </button>
+            <button
+              onClick={() => setPeriod({ month, half: "second" })}
+              className={`rounded px-3 py-1.5 text-sm font-medium ${
+                half === "second"
+                  ? "bg-ember-500 text-white"
+                  : "text-char-700/70 hover:bg-char-800/5"
+              }`}
+            >
+              16–end
+            </button>
+          </div>
         </div>
       </div>
+
+      <p className="mb-4 text-sm text-char-700/60">
+        Period: {periodStart} → {periodEnd}
+      </p>
 
       {loading ? (
         <p className="text-char-700/60">Loading payroll…</p>
       ) : rows.length === 0 ? (
-        <p className="text-char-700/60">No time logs for this week yet.</p>
+        <p className="text-char-700/60">No time logs for this period yet.</p>
       ) : (
         <div className="overflow-hidden rounded-card border border-char-700/10 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
@@ -113,18 +208,19 @@ export default function PayrollPage() {
                 <th className="px-4 py-3 font-medium">Rate/hr</th>
                 <th className="px-4 py-3 font-medium">Hours</th>
                 <th className="px-4 py-3 font-medium">Pay</th>
+                <th className="px-4 py-3 font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <Fragment key={r.staff.id}>
-                  <tr
-                    className="cursor-pointer border-t border-char-700/10 hover:bg-char-800/5"
-                    onClick={() =>
-                      setExpanded(expanded === r.staff.id ? null : r.staff.id)
-                    }
-                  >
-                    <td className="px-4 py-3 font-medium text-char-900">
+                  <tr className="border-t border-char-700/10 hover:bg-char-800/5">
+                    <td
+                      className="cursor-pointer px-4 py-3 font-medium text-char-900"
+                      onClick={() =>
+                        setExpanded(expanded === r.staff.id ? null : r.staff.id)
+                      }
+                    >
                       {r.staff.full_name}
                     </td>
                     <td className="px-4 py-3 capitalize text-char-700/70">
@@ -135,14 +231,29 @@ export default function PayrollPage() {
                     <td className="px-4 py-3 font-semibold text-char-900">
                       {formatPeso(r.totalPay)}
                     </td>
+                    <td className="px-4 py-3">
+                      {r.payment ? (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                          Paid {formatDateTime(r.payment.paid_at)}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => markPaid(r)}
+                          disabled={paying === r.staff.id || r.totalHours === 0}
+                          className="rounded bg-ember-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-ember-600 disabled:opacity-50"
+                        >
+                          {paying === r.staff.id ? "Saving…" : "Mark as Paid"}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                   {expanded === r.staff.id && (
                     <tr className="border-t border-char-700/10 bg-char-800/[0.03]">
-                      <td colSpan={5} className="px-4 py-3">
+                      <td colSpan={6} className="px-4 py-3">
                         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-char-700/50">
-                          Shift detail
+                          Shift detail — this period
                         </p>
-                        <ul className="space-y-1 text-char-700/80">
+                        <ul className="mb-4 space-y-1 text-char-700/80">
                           {r.logs.map((l) => (
                             <li key={l.id}>
                               <div className="flex justify-between">
@@ -175,7 +286,32 @@ export default function PayrollPage() {
                               )}
                             </li>
                           ))}
+                          {r.logs.length === 0 && (
+                            <li className="text-char-700/50">No shifts this period.</li>
+                          )}
                         </ul>
+
+                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-char-700/50">
+                          Payment history — proof of payment
+                        </p>
+                        {r.history.length === 0 ? (
+                          <p className="text-char-700/50">No payments recorded yet.</p>
+                        ) : (
+                          <ul className="space-y-1 text-char-700/80">
+                            {r.history.map((p) => (
+                              <li key={p.id} className="flex justify-between">
+                                <span>
+                                  {p.period_start} → {p.period_end} ·{" "}
+                                  {p.total_hours} hrs @ {formatPeso(p.hourly_rate)}/hr
+                                </span>
+                                <span className="font-medium text-char-900">
+                                  {formatPeso(p.gross_pay)} — paid{" "}
+                                  {formatDateTime(p.paid_at)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </td>
                     </tr>
                   )}
@@ -185,9 +321,11 @@ export default function PayrollPage() {
             <tfoot>
               <tr className="border-t-2 border-char-700/20 font-semibold text-char-900">
                 <td className="px-4 py-3" colSpan={4}>
-                  Total payroll this week
+                  Total payroll this period
                 </td>
-                <td className="px-4 py-3">{formatPeso(grandTotal)}</td>
+                <td className="px-4 py-3" colSpan={2}>
+                  {formatPeso(grandTotal)}
+                </td>
               </tr>
             </tfoot>
           </table>
