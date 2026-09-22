@@ -29,23 +29,23 @@ export default function SetDeliveryRiderModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-card bg-white p-6 shadow-xl"
+        className="w-full max-w-sm rounded-card bg-white dark:bg-char-900 p-6 shadow-xl"
       >
-        <h2 className="mb-1 font-display text-lg font-semibold text-char-900">
+        <h2 className="mb-1 font-display text-lg font-semibold text-char-900 dark:text-cream">
           Delivery rider — order #{orderNumber}
         </h2>
-        <p className="mb-4 text-sm text-char-700/70">
+        <p className="mb-4 text-sm text-char-700/70 dark:text-cream/70">
           Who's delivering this order? This is recorded as proof of handoff.
         </p>
 
-        <label className="mb-1 block text-sm font-medium text-char-700">
+        <label className="mb-1 block text-sm font-medium text-char-700 dark:text-cream/80">
           Rider name
         </label>
         <input
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mb-4 w-full rounded-md border border-char-700/20 px-3 py-2 focus:border-ember-500 focus:outline-none"
+          className="mb-4 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
           placeholder="e.g. Juan dela Cruz"
         />
 
@@ -53,7 +53,7 @@ export default function SetDeliveryRiderModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-char-700 hover:bg-char-800/5"
+            className="rounded-md px-4 py-2 text-char-700 dark:text-cream/80 hover:bg-char-800/5 dark:hover:bg-cream/5"
           >
             Cancel
           </button>

@@ -162,10 +162,10 @@ export default function ProductsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-char-900">
+          <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
             Menu Management
           </h1>
-          <p className="text-sm text-char-700/70">
+          <p className="text-sm text-char-700/70 dark:text-cream/70">
             Add, edit, and photograph items on the Fedelicious Wings menu.
           </p>
         </div>
@@ -178,15 +178,15 @@ export default function ProductsPage() {
       </div>
 
       {loading ? (
-        <p className="text-char-700/60">Loading menu…</p>
+        <p className="text-char-700/60 dark:text-cream/60">Loading menu…</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((p) => (
             <div
               key={p.id}
-              className="overflow-hidden rounded-card border border-char-700/10 bg-white shadow-sm"
+              className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm"
             >
-              <div className="relative h-36 w-full bg-char-800/5">
+              <div className="relative h-36 w-full bg-char-800/5 dark:bg-cream/5">
                 {p.image_url ? (
                   <Image
                     src={p.image_url}
@@ -195,7 +195,7 @@ export default function ProductsPage() {
                     className="object-cover"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-char-700/30">
+                  <div className="flex h-full items-center justify-center text-char-700/30 dark:text-cream/30">
                     No image
                   </div>
                 )}
@@ -206,31 +206,31 @@ export default function ProductsPage() {
                 )}
               </div>
               <div className="p-3">
-                <p className="text-xs uppercase tracking-wide text-ember-600">
+                <p className="text-xs uppercase tracking-wide text-ember-600 dark:text-ember-400">
                   {p.category}
                 </p>
-                <h3 className="font-display font-semibold text-char-900">
+                <h3 className="font-display font-semibold text-char-900 dark:text-cream">
                   {p.name}
                 </h3>
-                <p className="mt-1 text-sm font-semibold text-char-900">
+                <p className="mt-1 text-sm font-semibold text-char-900 dark:text-cream">
                   {formatPeso(p.price)}
                 </p>
                 <div className="mt-3 flex gap-2 text-sm">
                   <button
                     onClick={() => openEditForm(p)}
-                    className="rounded border border-char-700/20 px-2 py-1 text-char-700 hover:border-ember-500 hover:text-ember-600"
+                    className="rounded border border-char-700/20 dark:border-cream/15 px-2 py-1 text-char-700 dark:text-cream/80 hover:border-ember-500 hover:text-ember-600 dark:hover:text-ember-400"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => toggleAvailability(p)}
-                    className="rounded border border-char-700/20 px-2 py-1 text-char-700 hover:border-ember-500 hover:text-ember-600"
+                    className="rounded border border-char-700/20 dark:border-cream/15 px-2 py-1 text-char-700 dark:text-cream/80 hover:border-ember-500 hover:text-ember-600 dark:hover:text-ember-400"
                   >
                     {p.is_available ? "Hide" : "Show"}
                   </button>
                   <button
                     onClick={() => deleteProduct(p)}
-                    className="ml-auto rounded px-2 py-1 text-ember-600 hover:bg-ember-50"
+                    className="ml-auto rounded px-2 py-1 text-ember-600 dark:text-ember-400 hover:bg-ember-50 dark:hover:bg-ember-500/15"
                   >
                     Delete
                   </button>
@@ -245,23 +245,23 @@ export default function ProductsPage() {
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
           <form
             onSubmit={handleSubmit}
-            className="w-full max-w-md rounded-card bg-white p-6 shadow-xl"
+            className="w-full max-w-md rounded-card bg-white dark:bg-char-900 p-6 shadow-xl"
           >
             <h2 className="mb-4 font-display text-lg font-semibold">
               {form.id ? "Edit item" : "New menu item"}
             </h2>
 
             {error && (
-              <div className="mb-3 rounded border border-ember-300 bg-ember-50 px-3 py-2 text-sm text-ember-700">
+              <div className="mb-3 rounded border border-ember-300 dark:border-ember-500/40 bg-ember-50 dark:bg-ember-500/15 px-3 py-2 text-sm text-ember-700 dark:text-ember-300">
                 {error}
               </div>
             )}
 
-            <label className="mb-1 block text-sm font-medium text-char-700">
+            <label className="mb-1 block text-sm font-medium text-char-700 dark:text-cream/80">
               Photo
             </label>
             <div className="mb-4 flex items-center gap-3">
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-char-800/5">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-char-800/5 dark:bg-cream/5">
                 {imagePreview && (
                   <Image
                     src={imagePreview}
@@ -279,31 +279,31 @@ export default function ProductsPage() {
               />
             </div>
 
-            <label className="mb-1 block text-sm font-medium text-char-700">
+            <label className="mb-1 block text-sm font-medium text-char-700 dark:text-cream/80">
               Name
             </label>
             <input
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="mb-3 w-full rounded-md border border-char-700/20 px-3 py-2 focus:border-ember-500 focus:outline-none"
+              className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
               placeholder="e.g. Spicy Garlic Wings (6pc)"
             />
 
-            <label className="mb-1 block text-sm font-medium text-char-700">
+            <label className="mb-1 block text-sm font-medium text-char-700 dark:text-cream/80">
               Description / info
             </label>
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="mb-3 w-full rounded-md border border-char-700/20 px-3 py-2 focus:border-ember-500 focus:outline-none"
+              className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
               rows={2}
               placeholder="Short description shown to cashiers/customers"
             />
 
             <div className="mb-3 grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-sm font-medium text-char-700">
+                <label className="mb-1 block text-sm font-medium text-char-700 dark:text-cream/80">
                   Price (₱)
                 </label>
                 <input
@@ -313,17 +313,17 @@ export default function ProductsPage() {
                   step="0.01"
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="w-full rounded-md border border-char-700/20 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                  className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-char-700">
+                <label className="mb-1 block text-sm font-medium text-char-700 dark:text-cream/80">
                   Category
                 </label>
                 <select
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full rounded-md border border-char-700/20 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                  className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
                 >
                   {(CATEGORY_OPTIONS.includes(form.category)
                     ? CATEGORY_OPTIONS
@@ -337,7 +337,7 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <label className="mb-4 flex items-center gap-2 text-sm text-char-700">
+            <label className="mb-4 flex items-center gap-2 text-sm text-char-700 dark:text-cream/80">
               <input
                 type="checkbox"
                 checked={form.is_available}
@@ -352,7 +352,7 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="rounded-md px-4 py-2 text-char-700 hover:bg-char-800/5"
+                className="rounded-md px-4 py-2 text-char-700 dark:text-cream/80 hover:bg-char-800/5 dark:hover:bg-cream/5"
               >
                 Cancel
               </button>

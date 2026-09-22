@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import { formatPeso, paymentMethodLabel } from "@/lib/utils";
+import { useIsDarkMode } from "@/lib/use-dark-mode";
 import type { Product } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -109,6 +110,14 @@ function bucketLabelFor(key: string, granularity: Granularity): string {
 
 export default function AnalyticsPage() {
   const supabase = createClient();
+  const isDark = useIsDarkMode();
+  const gridColor = isDark ? "#463830" : "#e5decf";
+  const axisColor = isDark ? "#c9bfae" : "#7a6a58";
+  const tooltipStyle = {
+    background: isDark ? "#241D18" : "#fff",
+    border: `1px solid ${gridColor}`,
+    color: isDark ? "#FBF4EA" : "#241D18",
+  };
 
   const [products, setProducts] = useState<Product[]>([]);
   const [rangeDays, setRangeDays] = useState(30);
@@ -311,21 +320,21 @@ export default function AnalyticsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-char-900">
+        <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
           Analytics
         </h1>
-        <p className="text-sm text-char-700/70">
+        <p className="text-sm text-char-700/70 dark:text-cream/70">
           What's selling, what isn't, and how it's trending.
         </p>
       </div>
 
       {/* ---------- Orders by channel ---------- */}
       <div className="mb-8">
-        <h2 className="mb-4 font-display font-semibold text-char-900">
+        <h2 className="mb-4 font-display font-semibold text-char-900 dark:text-cream">
           Orders by channel
         </h2>
         {loadingOrderTypes ? (
-          <p className="text-char-700/60">Loading…</p>
+          <p className="text-char-700/60 dark:text-cream/60">Loading…</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -334,15 +343,15 @@ export default function AnalyticsPage() {
                 return (
                   <div
                     key={type}
-                    className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
+                    className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm"
                   >
-                    <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
+                    <p className="text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
                       {ORDER_TYPE_LABEL[type]}
                     </p>
-                    <p className="mt-1 font-display text-2xl font-semibold text-char-900">
+                    <p className="mt-1 font-display text-2xl font-semibold text-char-900 dark:text-cream">
                       {stat.count} orders
                     </p>
-                    <p className="text-sm text-ember-600">{formatPeso(stat.revenue)}</p>
+                    <p className="text-sm text-ember-600 dark:text-ember-400">{formatPeso(stat.revenue)}</p>
                   </div>
                 );
               })}
@@ -360,11 +369,11 @@ export default function AnalyticsPage() {
 
       {/* ---------- Payment methods ---------- */}
       <div className="mb-8">
-        <h2 className="mb-4 font-display font-semibold text-char-900">
+        <h2 className="mb-4 font-display font-semibold text-char-900 dark:text-cream">
           Payment methods
         </h2>
         {loadingOrderTypes ? (
-          <p className="text-char-700/60">Loading…</p>
+          <p className="text-char-700/60 dark:text-cream/60">Loading…</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:max-w-lg">
@@ -373,15 +382,15 @@ export default function AnalyticsPage() {
                 return (
                   <div
                     key={method}
-                    className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
+                    className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm"
                   >
-                    <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
+                    <p className="text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
                       {paymentMethodLabel(method)}
                     </p>
-                    <p className="mt-1 font-display text-2xl font-semibold text-char-900">
+                    <p className="mt-1 font-display text-2xl font-semibold text-char-900 dark:text-cream">
                       {stat.count} orders
                     </p>
-                    <p className="text-sm text-ember-600">{formatPeso(stat.revenue)}</p>
+                    <p className="text-sm text-ember-600 dark:text-ember-400">{formatPeso(stat.revenue)}</p>
                   </div>
                 );
               })}
@@ -400,10 +409,10 @@ export default function AnalyticsPage() {
       {/* ---------- Top/Bottom sellers per category ---------- */}
       <div className="mb-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display font-semibold text-char-900">
+          <h2 className="font-display font-semibold text-char-900 dark:text-cream">
             Best &amp; worst sellers by category
           </h2>
-          <div className="flex gap-1 rounded-md border border-char-700/20 bg-white p-1">
+          <div className="flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 p-1">
             {RANGE_OPTIONS.map((opt) => (
               <button
                 key={opt.days}
@@ -411,7 +420,7 @@ export default function AnalyticsPage() {
                 className={`rounded px-3 py-1.5 text-sm font-medium ${
                   rangeDays === opt.days
                     ? "bg-ember-500 text-white"
-                    : "text-char-700/70 hover:bg-char-800/5"
+                    : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/5 dark:hover:bg-cream/5"
                 }`}
               >
                 {opt.label}
@@ -421,26 +430,26 @@ export default function AnalyticsPage() {
         </div>
 
         {loadingStats ? (
-          <p className="text-char-700/60">Loading…</p>
+          <p className="text-char-700/60 dark:text-cream/60">Loading…</p>
         ) : byCategory.length === 0 ? (
-          <p className="text-char-700/60">No menu items yet.</p>
+          <p className="text-char-700/60 dark:text-cream/60">No menu items yet.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {byCategory.map(({ category, top, bottom, hasDistinctBottom }) => (
               <div
                 key={category}
-                className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
+                className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm"
               >
-                <h3 className="mb-3 font-display font-semibold text-char-900">
+                <h3 className="mb-3 font-display font-semibold text-char-900 dark:text-cream">
                   {category}
                 </h3>
                 {hasDistinctBottom ? (
                   <div className="grid grid-cols-2 gap-4">
-                    <RankedList title="Top 5" rows={top} tone="text-green-700" />
-                    <RankedList title="Bottom 5" rows={bottom} tone="text-ember-600" />
+                    <RankedList title="Top 5" rows={top} tone="text-green-700 dark:text-green-400" />
+                    <RankedList title="Bottom 5" rows={bottom} tone="text-ember-600 dark:text-ember-400" />
                   </div>
                 ) : (
-                  <RankedList title="All items" rows={top} tone="text-char-800" />
+                  <RankedList title="All items" rows={top} tone="text-char-800 dark:text-cream/90" />
                 )}
               </div>
             ))}
@@ -449,12 +458,12 @@ export default function AnalyticsPage() {
       </div>
 
       {/* ---------- Trending graph ---------- */}
-      <div className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm">
+      <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display font-semibold text-char-900">
+          <h2 className="font-display font-semibold text-char-900 dark:text-cream">
             Trending items
           </h2>
-          <div className="flex gap-1 rounded-md border border-char-700/20 bg-white p-1">
+          <div className="flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 p-1">
             {GRANULARITY_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -462,7 +471,7 @@ export default function AnalyticsPage() {
                 className={`rounded px-3 py-1.5 text-sm font-medium ${
                   granularity === opt.value
                     ? "bg-ember-500 text-white"
-                    : "text-char-700/70 hover:bg-char-800/5"
+                    : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/5 dark:hover:bg-cream/5"
                 }`}
               >
                 {opt.label}
@@ -472,18 +481,20 @@ export default function AnalyticsPage() {
         </div>
 
         {loadingTrend ? (
-          <p className="text-char-700/60">Loading…</p>
+          <p className="text-char-700/60 dark:text-cream/60">Loading…</p>
         ) : chartData.length === 0 ? (
-          <p className="text-char-700/60">No sales in this window yet.</p>
+          <p className="text-char-700/60 dark:text-cream/60">No sales in this window yet.</p>
         ) : (
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5decf" />
-                <XAxis dataKey="bucket" fontSize={12} stroke="#7a6a58" />
-                <YAxis fontSize={12} stroke="#7a6a58" allowDecimals={false} />
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                <XAxis dataKey="bucket" fontSize={12} stroke={axisColor} />
+                <YAxis fontSize={12} stroke={axisColor} allowDecimals={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Legend
+                  wrapperStyle={{ fontSize: 12, color: isDark ? "#FBF4EA" : "#241D18" }}
+                />
                 {topProductNames.map((name, i) => (
                   <Line
                     key={name}
@@ -509,16 +520,17 @@ function SharePie({
 }: {
   data: { name: string; value: number; color: string }[];
 }) {
+  const isDark = useIsDarkMode();
   const total = data.reduce((sum, d) => sum + d.value, 0);
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center rounded-card border border-char-700/10 bg-white p-5 text-sm text-char-700/50 shadow-sm">
+      <div className="flex items-center justify-center rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 text-sm text-char-700/50 dark:text-cream/50 shadow-sm">
         No revenue yet
       </div>
     );
   }
   return (
-    <div className="rounded-card border border-char-700/10 bg-white p-3 shadow-sm">
+    <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-3 shadow-sm">
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -534,11 +546,18 @@ function SharePie({
                 <Cell key={d.name} fill={d.color} />
               ))}
             </Pie>
-            <Tooltip formatter={(v: number) => formatPeso(v)} />
+            <Tooltip
+              formatter={(v: number) => formatPeso(v)}
+              contentStyle={{
+                background: isDark ? "#241D18" : "#fff",
+                border: `1px solid ${isDark ? "#463830" : "#e5decf"}`,
+                color: isDark ? "#FBF4EA" : "#241D18",
+              }}
+            />
             <Legend
               verticalAlign="bottom"
               height={36}
-              wrapperStyle={{ fontSize: 12 }}
+              wrapperStyle={{ fontSize: 12, color: isDark ? "#FBF4EA" : "#241D18" }}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -558,16 +577,16 @@ function RankedList({
 }) {
   return (
     <div>
-      <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-char-700/50">
+      <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
         {title}
       </p>
       {rows.length === 0 ? (
-        <p className="text-xs text-char-700/40">—</p>
+        <p className="text-xs text-char-700/40 dark:text-cream/40">—</p>
       ) : (
         <ol className="space-y-1 text-sm">
           {rows.map((r) => (
             <li key={r.productId} className="flex justify-between gap-2">
-              <span className="line-clamp-1 text-char-800" title={r.name}>
+              <span className="line-clamp-1 text-char-800 dark:text-cream/90" title={r.name}>
                 {r.name}
               </span>
               <span className={`shrink-0 font-medium ${tone}`}>

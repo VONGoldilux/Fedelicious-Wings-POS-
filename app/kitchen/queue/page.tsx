@@ -123,30 +123,30 @@ export default function KitchenQueuePage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-char-900">
+          <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
             Kitchen Display
           </h1>
-          <p className="text-sm text-char-700/70">
+          <p className="text-sm text-char-700/70 dark:text-cream/70">
             Orders update live — no refresh needed.
           </p>
         </div>
-        <div className="rounded-card border border-char-700/10 bg-white px-4 py-2.5 shadow-sm">
-          <p className="text-xs text-char-700/50">Handled today</p>
-          <p className="font-display text-xl font-semibold text-green-600">
+        <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 px-4 py-2.5 shadow-sm">
+          <p className="text-xs text-char-700/50 dark:text-cream/50">Handled today</p>
+          <p className="font-display text-xl font-semibold text-green-600 dark:text-green-400">
             {handledToday}
           </p>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-char-700/60">Loading queue…</p>
+        <p className="text-char-700/60 dark:text-cream/60">Loading queue…</p>
       ) : (
         <>
           {orders.length === 0 && (
-            <p className="mb-4 text-char-700/60">No active orders. All caught up! 🍗</p>
+            <p className="mb-4 text-char-700/60 dark:text-cream/60">No active orders. All caught up! 🍗</p>
           )}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <Column title="Queued" count={queued.length} accent="border-char-700/30">
+          <Column title="Queued" count={queued.length} accent="border-char-700/30 dark:border-cream/20">
             {queued.map((o) => (
               <OrderCard
                 key={o.id}
@@ -178,17 +178,17 @@ export default function KitchenQueuePage() {
       )}
 
       <div className="mt-8">
-        <h2 className="mb-3 font-display font-semibold text-char-900">
+        <h2 className="mb-3 font-display font-semibold text-char-900 dark:text-cream">
           Recently handled
         </h2>
         {recentHandled.length === 0 ? (
-          <p className="text-sm text-char-700/60">
+          <p className="text-sm text-char-700/60 dark:text-cream/60">
             No orders handled yet — completed orders will show up here.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-card border border-char-700/10 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm">
             <table className="w-full text-left text-sm">
-              <thead className="bg-char-800/5 text-xs uppercase text-char-700/50">
+              <thead className="bg-char-800/5 dark:bg-cream/5 text-xs uppercase text-char-700/50 dark:text-cream/50">
                 <tr>
                   <th className="px-4 py-2.5">Order</th>
                   <th className="px-4 py-2.5">Type</th>
@@ -197,25 +197,25 @@ export default function KitchenQueuePage() {
                   <th className="px-4 py-2.5">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-char-700/10">
+              <tbody className="divide-y divide-char-700/10 dark:divide-cream/10">
                 {recentHandled.map((o) => (
                   <tr key={o.id}>
-                    <td className="px-4 py-2.5 font-medium text-char-900">
+                    <td className="px-4 py-2.5 font-medium text-char-900 dark:text-cream">
                       #{o.order_number}
                     </td>
-                    <td className="px-4 py-2.5 text-char-700/70">
+                    <td className="px-4 py-2.5 text-char-700/70 dark:text-cream/70">
                       {ORDER_TYPE_LABEL[o.order_type] ?? o.order_type}
                       {o.order_type === "dine_in" && o.table_number
                         ? ` · Table ${o.table_number}`
                         : ""}
                     </td>
-                    <td className="px-4 py-2.5 text-char-700/70">
+                    <td className="px-4 py-2.5 text-char-700/70 dark:text-cream/70">
                       {o.ready_at ? formatTime(o.ready_at) : "—"}
                     </td>
-                    <td className="px-4 py-2.5 text-char-700/70">
+                    <td className="px-4 py-2.5 text-char-700/70 dark:text-cream/70">
                       {o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items
                     </td>
-                    <td className="px-4 py-2.5 capitalize text-char-700/70">
+                    <td className="px-4 py-2.5 capitalize text-char-700/70 dark:text-cream/70">
                       {o.status}
                     </td>
                   </tr>
@@ -242,8 +242,8 @@ function Column({
 }) {
   return (
     <div>
-      <h2 className={`mb-3 border-b-2 pb-2 font-display font-semibold text-char-900 ${accent}`}>
-        {title} <span className="text-char-700/40">({count})</span>
+      <h2 className={`mb-3 border-b-2 pb-2 font-display font-semibold text-char-900 dark:text-cream ${accent}`}>
+        {title} <span className="text-char-700/40 dark:text-cream/40">({count})</span>
       </h2>
       <div className="space-y-3">{children}</div>
     </div>
@@ -266,29 +266,29 @@ function OrderCard({
 
   return (
     <div
-      className={`rounded-card border bg-white p-4 shadow-sm ${
-        urgent ? "border-ember-500" : "border-char-700/10"
+      className={`rounded-card border bg-white dark:bg-char-900 p-4 shadow-sm ${
+        urgent ? "border-ember-500" : "border-char-700/10 dark:border-cream/10"
       }`}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="font-display font-semibold text-char-900">
+        <span className="font-display font-semibold text-char-900 dark:text-cream">
           #{order.order_number}
         </span>
         <span
-          className={`text-xs ${urgent ? "font-semibold text-ember-600" : "text-char-700/50"}`}
+          className={`text-xs ${urgent ? "font-semibold text-ember-600 dark:text-ember-400" : "text-char-700/50 dark:text-cream/50"}`}
         >
           {formatTime(order.created_at)} · {age}m ago
         </span>
       </div>
 
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        <span className="rounded-full bg-char-800/5 px-2 py-0.5 text-xs font-medium capitalize text-char-700">
+        <span className="rounded-full bg-char-800/5 dark:bg-cream/5 px-2 py-0.5 text-xs font-medium capitalize text-char-700 dark:text-cream/80">
           {order.order_type === "dine_in"
             ? `Dine-in${order.table_number ? ` · Table ${order.table_number}` : ""}`
             : order.order_type.replace("_", " ")}
         </span>
         {order.order_type === "delivery" && order.delivered_by && (
-          <span className="rounded-full bg-char-800/5 px-2 py-0.5 text-xs text-char-700">
+          <span className="rounded-full bg-char-800/5 dark:bg-cream/5 px-2 py-0.5 text-xs text-char-700 dark:text-cream/80">
             Rider: {order.delivered_by}
           </span>
         )}
@@ -296,21 +296,21 @@ function OrderCard({
 
       <ul className="mb-3 space-y-1 text-sm">
         {order.order_items?.map((it) => (
-          <li key={it.id} className="text-char-800">
+          <li key={it.id} className="text-char-800 dark:text-cream/90">
             <div className="flex justify-between">
               <span>
                 {it.quantity}× {it.product_name}
               </span>
             </div>
             {it.special_instructions && (
-              <p className="text-xs italic text-ember-600">{it.special_instructions}</p>
+              <p className="text-xs italic text-ember-600 dark:text-ember-400">{it.special_instructions}</p>
             )}
           </li>
         ))}
       </ul>
 
       {order.notes && (
-        <p className="mb-3 rounded bg-char-800/5 px-2 py-1 text-xs text-char-700/70">
+        <p className="mb-3 rounded bg-char-800/5 dark:bg-cream/5 px-2 py-1 text-xs text-char-700/70 dark:text-cream/70">
           Note: {order.notes}
         </p>
       )}
@@ -324,7 +324,7 @@ function OrderCard({
         </button>
       )}
       {readOnly && (
-        <p className="text-center text-sm font-medium text-green-600">
+        <p className="text-center text-sm font-medium text-green-600 dark:text-green-400">
           Waiting for pickup
         </p>
       )}

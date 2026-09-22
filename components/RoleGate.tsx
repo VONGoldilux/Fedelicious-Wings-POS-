@@ -33,14 +33,14 @@ export default function RoleGate({
 
   if (loading || !profile || !allow.includes(profile.role)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-cream">
-        <p className="text-char-700">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-cream dark:bg-char-950">
+        <p className="text-char-700 dark:text-cream/80">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-cream dark:bg-char-950">
       <AppHeader />
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</main>
     </div>

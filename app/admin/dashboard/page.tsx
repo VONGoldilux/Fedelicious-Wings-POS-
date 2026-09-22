@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import { formatPeso } from "@/lib/utils";
+import { useIsDarkMode } from "@/lib/use-dark-mode";
 import type { Order, OrderItem } from "@/lib/types";
 
 const RANGE_OPTIONS = [
@@ -22,6 +23,9 @@ const RANGE_OPTIONS = [
 
 export default function DashboardPage() {
   const supabase = createClient();
+  const isDark = useIsDarkMode();
+  const gridColor = isDark ? "#463830" : "#e5decf";
+  const axisColor = isDark ? "#c9bfae" : "#7a6a58";
   const [rangeDays, setRangeDays] = useState(7);
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -94,14 +98,14 @@ export default function DashboardPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-char-900">
+          <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
             Sales Reports
           </h1>
-          <p className="text-sm text-char-700/70">
+          <p className="text-sm text-char-700/70 dark:text-cream/70">
             Revenue and menu performance for Fedelicious Wings.
           </p>
         </div>
-        <div className="flex gap-1 rounded-md border border-char-700/20 bg-white p-1">
+        <div className="flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 p-1">
           {RANGE_OPTIONS.map((opt) => (
             <button
               key={opt.days}
@@ -109,7 +113,7 @@ export default function DashboardPage() {
               className={`rounded px-3 py-1.5 text-sm font-medium ${
                 rangeDays === opt.days
                   ? "bg-ember-500 text-white"
-                  : "text-char-700/70 hover:bg-char-800/5"
+                  : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/5 dark:hover:bg-cream/5"
               }`}
             >
               {opt.label}
@@ -119,7 +123,7 @@ export default function DashboardPage() {
       </div>
 
       {loading ? (
-        <p className="text-char-700/60">Loading report…</p>
+        <p className="text-char-700/60 dark:text-cream/60">Loading report…</p>
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -131,29 +135,36 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="mb-6 rounded-card border border-char-700/10 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 font-display font-semibold text-char-900">
+          <div className="mb-6 rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
+            <h2 className="mb-4 font-display font-semibold text-char-900 dark:text-cream">
               Revenue by day
             </h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={revenueByDay}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5decf" />
-                  <XAxis dataKey="day" fontSize={12} stroke="#7a6a58" />
-                  <YAxis fontSize={12} stroke="#7a6a58" />
-                  <Tooltip formatter={(v: number) => formatPeso(v)} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                  <XAxis dataKey="day" fontSize={12} stroke={axisColor} />
+                  <YAxis fontSize={12} stroke={axisColor} />
+                  <Tooltip
+                    formatter={(v: number) => formatPeso(v)}
+                    contentStyle={{
+                      background: isDark ? "#241D18" : "#fff",
+                      border: `1px solid ${gridColor}`,
+                      color: isDark ? "#FBF4EA" : "#241D18",
+                    }}
+                  />
                   <Bar dataKey="revenue" fill="#F0662B" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 font-display font-semibold text-char-900">
+          <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
+            <h2 className="mb-4 font-display font-semibold text-char-900 dark:text-cream">
               Popular items
             </h2>
             <table className="w-full text-left text-sm">
-              <thead className="text-char-700/60">
+              <thead className="text-char-700/60 dark:text-cream/60">
                 <tr>
                   <th className="pb-2 font-medium">Item</th>
                   <th className="pb-2 font-medium">Qty sold</th>
@@ -162,15 +173,15 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {popularItems.map((it) => (
-                  <tr key={it.name} className="border-t border-char-700/10">
-                    <td className="py-2 text-char-900">{it.name}</td>
+                  <tr key={it.name} className="border-t border-char-700/10 dark:border-cream/10">
+                    <td className="py-2 text-char-900 dark:text-cream">{it.name}</td>
                     <td className="py-2">{it.qty}</td>
                     <td className="py-2">{formatPeso(it.revenue)}</td>
                   </tr>
                 ))}
                 {popularItems.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="py-4 text-center text-char-700/50">
+                    <td colSpan={3} className="py-4 text-center text-char-700/50 dark:text-cream/50">
                       No sales in this period yet.
                     </td>
                   </tr>
@@ -186,11 +197,11 @@ export default function DashboardPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
+    <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
+      <p className="text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
         {label}
       </p>
-      <p className="mt-1 font-display text-2xl font-semibold text-char-900">
+      <p className="mt-1 font-display text-2xl font-semibold text-char-900 dark:text-cream">
         {value}
       </p>
     </div>

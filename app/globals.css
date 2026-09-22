@@ -12,6 +12,10 @@ body {
   background-color: #f5efe4;
 }
 
+.dark body {
+  background-color: #1a1512;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

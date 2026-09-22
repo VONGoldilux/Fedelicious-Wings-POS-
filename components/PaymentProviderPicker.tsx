@@ -34,7 +34,7 @@ export default function PaymentProviderPicker({
     return (
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label className="block text-xs font-medium text-char-700/70">
+          <label className="block text-xs font-medium text-char-700/70 dark:text-cream/70">
             Bank / e-wallet (typed manually)
           </label>
           <button
@@ -44,7 +44,7 @@ export default function PaymentProviderPicker({
               onChange("");
               setInputText("");
             }}
-            className="text-xs text-ember-600 hover:underline"
+            className="text-xs text-ember-600 dark:text-ember-400 hover:underline"
           >
             Search instead
           </button>
@@ -54,7 +54,7 @@ export default function PaymentProviderPicker({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="e.g. PayPal, Alipay, WeChat Pay…"
-          className="w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+          className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
         />
       </div>
     );
@@ -62,7 +62,7 @@ export default function PaymentProviderPicker({
 
   return (
     <div className="relative">
-      <label className="mb-1 block text-xs font-medium text-char-700/70">
+      <label className="mb-1 block text-xs font-medium text-char-700/70 dark:text-cream/70">
         Bank / e-wallet used
       </label>
       <input
@@ -74,10 +74,10 @@ export default function PaymentProviderPicker({
         }}
         onFocus={() => setOpen(true)}
         placeholder="Search GCash, Maya, BDO…"
-        className="w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+        className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
       />
       {open && (
-        <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-char-700/20 bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 shadow-lg">
           {filtered.map((p) => (
             <button
               key={p}
@@ -88,15 +88,15 @@ export default function PaymentProviderPicker({
                 setInputText(p);
                 setOpen(false);
               }}
-              className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-char-800/5 ${
-                value === p ? "bg-ember-50 text-ember-700" : "text-char-800"
+              className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-char-800/5 dark:hover:bg-cream/5 ${
+                value === p ? "bg-ember-50 dark:bg-ember-500/15 text-ember-700 dark:text-ember-300" : "text-char-800 dark:text-cream/90"
               }`}
             >
               {p}
             </button>
           ))}
           {filtered.length === 0 && (
-            <p className="px-3 py-1.5 text-sm text-char-700/50">No matches.</p>
+            <p className="px-3 py-1.5 text-sm text-char-700/50 dark:text-cream/50">No matches.</p>
           )}
           <button
             type="button"
@@ -107,7 +107,7 @@ export default function PaymentProviderPicker({
               setInputText("");
               setOpen(false);
             }}
-            className="block w-full border-t border-char-700/10 px-3 py-1.5 text-left text-sm font-medium text-ember-600 hover:bg-ember-50"
+            className="block w-full border-t border-char-700/10 dark:border-cream/10 px-3 py-1.5 text-left text-sm font-medium text-ember-600 dark:text-ember-400 hover:bg-ember-50 dark:hover:bg-ember-500/15"
           >
             Other (type it in)
           </button>

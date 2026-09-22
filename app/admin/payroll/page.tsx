@@ -146,32 +146,32 @@ export default function PayrollPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-char-900">
+          <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
             Payroll
           </h1>
-          <p className="text-sm text-char-700/70">
+          <p className="text-sm text-char-700/70 dark:text-cream/70">
             Paid twice a month — the 15th and the last day of the month.
           </p>
         </div>
         <div className="flex items-end gap-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-char-700/70">
+            <label className="mb-1 block text-xs font-medium text-char-700/70 dark:text-cream/70">
               Month
             </label>
             <input
               type="month"
               value={month}
               onChange={(e) => setPeriod({ month: e.target.value, half })}
-              className="rounded-md border border-char-700/20 bg-white px-3 py-2 text-sm"
+              className="rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 px-3 py-2 text-sm"
             />
           </div>
-          <div className="flex gap-1 rounded-md border border-char-700/20 bg-white p-1">
+          <div className="flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 p-1">
             <button
               onClick={() => setPeriod({ month, half: "first" })}
               className={`rounded px-3 py-1.5 text-sm font-medium ${
                 half === "first"
                   ? "bg-ember-500 text-white"
-                  : "text-char-700/70 hover:bg-char-800/5"
+                  : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/5 dark:hover:bg-cream/5"
               }`}
             >
               1–15
@@ -181,7 +181,7 @@ export default function PayrollPage() {
               className={`rounded px-3 py-1.5 text-sm font-medium ${
                 half === "second"
                   ? "bg-ember-500 text-white"
-                  : "text-char-700/70 hover:bg-char-800/5"
+                  : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/5 dark:hover:bg-cream/5"
               }`}
             >
               16–end
@@ -190,18 +190,18 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      <p className="mb-4 text-sm text-char-700/60">
+      <p className="mb-4 text-sm text-char-700/60 dark:text-cream/60">
         Period: {periodStart} → {periodEnd}
       </p>
 
       {loading ? (
-        <p className="text-char-700/60">Loading payroll…</p>
+        <p className="text-char-700/60 dark:text-cream/60">Loading payroll…</p>
       ) : rows.length === 0 ? (
-        <p className="text-char-700/60">No time logs for this period yet.</p>
+        <p className="text-char-700/60 dark:text-cream/60">No time logs for this period yet.</p>
       ) : (
-        <div className="overflow-hidden rounded-card border border-char-700/10 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="bg-char-800/5 text-char-700/70">
+            <thead className="bg-char-800/5 dark:bg-cream/5 text-char-700/70 dark:text-cream/70">
               <tr>
                 <th className="px-4 py-3 font-medium">Staff</th>
                 <th className="px-4 py-3 font-medium">Role</th>
@@ -214,26 +214,26 @@ export default function PayrollPage() {
             <tbody>
               {rows.map((r) => (
                 <Fragment key={r.staff.id}>
-                  <tr className="border-t border-char-700/10 hover:bg-char-800/5">
+                  <tr className="border-t border-char-700/10 dark:border-cream/10 hover:bg-char-800/5 dark:hover:bg-cream/5">
                     <td
-                      className="cursor-pointer px-4 py-3 font-medium text-char-900"
+                      className="cursor-pointer px-4 py-3 font-medium text-char-900 dark:text-cream"
                       onClick={() =>
                         setExpanded(expanded === r.staff.id ? null : r.staff.id)
                       }
                     >
                       {r.staff.full_name}
                     </td>
-                    <td className="px-4 py-3 capitalize text-char-700/70">
+                    <td className="px-4 py-3 capitalize text-char-700/70 dark:text-cream/70">
                       {r.staff.role.replace("_", " ")}
                     </td>
                     <td className="px-4 py-3">{formatPeso(r.staff.hourly_rate)}</td>
                     <td className="px-4 py-3">{r.totalHours} hrs</td>
-                    <td className="px-4 py-3 font-semibold text-char-900">
+                    <td className="px-4 py-3 font-semibold text-char-900 dark:text-cream">
                       {formatPeso(r.totalPay)}
                     </td>
                     <td className="px-4 py-3">
                       {r.payment ? (
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        <span className="rounded-full bg-green-100 dark:bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
                           Paid {formatDateTime(r.payment.paid_at)}
                         </span>
                       ) : (
@@ -248,12 +248,12 @@ export default function PayrollPage() {
                     </td>
                   </tr>
                   {expanded === r.staff.id && (
-                    <tr className="border-t border-char-700/10 bg-char-800/[0.03]">
+                    <tr className="border-t border-char-700/10 dark:border-cream/10 bg-char-800/[0.03] dark:bg-cream/[0.03]">
                       <td colSpan={6} className="px-4 py-3">
-                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-char-700/50">
+                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
                           Shift detail — this period
                         </p>
-                        <ul className="mb-4 space-y-1 text-char-700/80">
+                        <ul className="mb-4 space-y-1 text-char-700/80 dark:text-cream/80">
                           {r.logs.map((l) => (
                             <li key={l.id}>
                               <div className="flex justify-between">
@@ -269,8 +269,8 @@ export default function PayrollPage() {
                                 <p
                                   className={`text-xs ${
                                     l.cash_diff === 0
-                                      ? "text-green-700"
-                                      : "text-ember-600"
+                                      ? "text-green-700 dark:text-green-400"
+                                      : "text-ember-600 dark:text-ember-400"
                                   }`}
                                 >
                                   Cash count: {formatPeso(l.counted_cash ?? 0)}{" "}
@@ -287,24 +287,24 @@ export default function PayrollPage() {
                             </li>
                           ))}
                           {r.logs.length === 0 && (
-                            <li className="text-char-700/50">No shifts this period.</li>
+                            <li className="text-char-700/50 dark:text-cream/50">No shifts this period.</li>
                           )}
                         </ul>
 
-                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-char-700/50">
+                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
                           Payment history — proof of payment
                         </p>
                         {r.history.length === 0 ? (
-                          <p className="text-char-700/50">No payments recorded yet.</p>
+                          <p className="text-char-700/50 dark:text-cream/50">No payments recorded yet.</p>
                         ) : (
-                          <ul className="space-y-1 text-char-700/80">
+                          <ul className="space-y-1 text-char-700/80 dark:text-cream/80">
                             {r.history.map((p) => (
                               <li key={p.id} className="flex justify-between">
                                 <span>
                                   {p.period_start} → {p.period_end} ·{" "}
                                   {p.total_hours} hrs @ {formatPeso(p.hourly_rate)}/hr
                                 </span>
-                                <span className="font-medium text-char-900">
+                                <span className="font-medium text-char-900 dark:text-cream">
                                   {formatPeso(p.gross_pay)} — paid{" "}
                                   {formatDateTime(p.paid_at)}
                                 </span>
@@ -319,7 +319,7 @@ export default function PayrollPage() {
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 border-char-700/20 font-semibold text-char-900">
+              <tr className="border-t-2 border-char-700/20 dark:border-cream/15 font-semibold text-char-900 dark:text-cream">
                 <td className="px-4 py-3" colSpan={4}>
                   Total payroll this period
                 </td>

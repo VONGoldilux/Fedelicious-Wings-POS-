@@ -4,6 +4,7 @@ import type { Config } from "tailwindcss";
 // habanero-orange accent and a mustard secondary — a wing-shack identity
 // rather than a generic SaaS blue.
 const config: Config = {
+  darkMode: "class",
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",

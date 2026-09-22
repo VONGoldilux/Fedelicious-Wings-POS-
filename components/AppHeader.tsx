@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import CashCountModal from "@/components/CashCountModal";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
   super_admin: [
@@ -88,6 +89,7 @@ export default function AppHeader() {
               </p>
             </div>
           )}
+          <ThemeToggle />
           <button
             onClick={handleSignOutClick}
             className="rounded-md border border-char-700 px-3 py-1.5 text-sm text-cream/80 transition-colors hover:border-ember-500 hover:text-ember-400"

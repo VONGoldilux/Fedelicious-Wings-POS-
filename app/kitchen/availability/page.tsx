@@ -88,10 +88,10 @@ export default function KitchenAvailabilityPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-char-900">
+        <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
           Menu Availability
         </h1>
-        <p className="text-sm text-char-700/70">
+        <p className="text-sm text-char-700/70 dark:text-cream/70">
           Mark items unavailable when you're out of stock — they'll
           disappear from the cashier's ordering screen instantly.
         </p>
@@ -103,9 +103,9 @@ export default function KitchenAvailabilityPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search menu items…"
-          className="w-full max-w-sm rounded-md border border-char-700/20 bg-white px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+          className="w-full max-w-sm rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
         />
-        <label className="flex items-center gap-2 text-sm text-char-700">
+        <label className="flex items-center gap-2 text-sm text-char-700 dark:text-cream/80">
           <input
             type="checkbox"
             checked={unavailableOnly}
@@ -116,24 +116,24 @@ export default function KitchenAvailabilityPage() {
       </div>
 
       {loading ? (
-        <p className="text-char-700/60">Loading menu…</p>
+        <p className="text-char-700/60 dark:text-cream/60">Loading menu…</p>
       ) : products.length === 0 ? (
-        <p className="text-char-700/60">No menu items yet.</p>
+        <p className="text-char-700/60 dark:text-cream/60">No menu items yet.</p>
       ) : byCategory.length === 0 ? (
-        <p className="text-char-700/60">No items match your search.</p>
+        <p className="text-char-700/60 dark:text-cream/60">No items match your search.</p>
       ) : (
         <div className="space-y-6">
           {byCategory.map(([category, items]) => (
             <div key={category}>
               <div className="mb-2 flex items-center justify-between">
-                <h2 className="font-display font-semibold text-char-900">
+                <h2 className="font-display font-semibold text-char-900 dark:text-cream">
                   {category}
                 </h2>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setCategoryAvailability(category, false)}
                     disabled={updatingCategory === category}
-                    className="rounded border border-char-700/20 px-2.5 py-1 text-xs font-medium text-char-800 hover:bg-char-800/5 disabled:opacity-50"
+                    className="rounded border border-char-700/20 dark:border-cream/15 px-2.5 py-1 text-xs font-medium text-char-800 dark:text-cream/90 hover:bg-char-800/5 dark:hover:bg-cream/5 disabled:opacity-50"
                   >
                     {updatingCategory === category
                       ? "Saving…"
@@ -142,34 +142,34 @@ export default function KitchenAvailabilityPage() {
                   <button
                     onClick={() => setCategoryAvailability(category, true)}
                     disabled={updatingCategory === category}
-                    className="rounded border border-char-700/20 px-2.5 py-1 text-xs font-medium text-char-800 hover:bg-char-800/5 disabled:opacity-50"
+                    className="rounded border border-char-700/20 dark:border-cream/15 px-2.5 py-1 text-xs font-medium text-char-800 dark:text-cream/90 hover:bg-char-800/5 dark:hover:bg-cream/5 disabled:opacity-50"
                   >
                     Mark all available
                   </button>
                 </div>
               </div>
-              <div className="overflow-hidden rounded-card border border-char-700/10 bg-white shadow-sm">
+              <div className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm">
                 <table className="w-full text-left text-sm">
-                  <tbody className="divide-y divide-char-700/10">
+                  <tbody className="divide-y divide-char-700/10 dark:divide-cream/10">
                     {items.map((p) => (
                       <tr key={p.id}>
                         <td className="px-4 py-2.5">
-                          <p className="font-medium text-char-900">{p.name}</p>
+                          <p className="font-medium text-char-900 dark:text-cream">{p.name}</p>
                           {p.description && (
-                            <p className="text-xs text-char-700/50 line-clamp-1">
+                            <p className="text-xs text-char-700/50 dark:text-cream/50 line-clamp-1">
                               {p.description}
                             </p>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-char-700/70">
+                        <td className="px-4 py-2.5 text-char-700/70 dark:text-cream/70">
                           {formatPeso(p.price)}
                         </td>
                         <td className="px-4 py-2.5">
                           <span
                             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                               p.is_available
-                                ? "bg-green-100 text-green-700"
-                                : "bg-char-800/10 text-char-700"
+                                ? "bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400"
+                                : "bg-char-800/10 dark:bg-cream/10 text-char-700 dark:text-cream/80"
                             }`}
                           >
                             {p.is_available ? "Available" : "Unavailable"}
@@ -179,7 +179,7 @@ export default function KitchenAvailabilityPage() {
                           <button
                             onClick={() => toggleAvailability(p)}
                             disabled={updatingId === p.id}
-                            className="rounded border border-char-700/20 px-3 py-1.5 text-xs font-medium text-char-800 hover:bg-char-800/5 disabled:opacity-50"
+                            className="rounded border border-char-700/20 dark:border-cream/15 px-3 py-1.5 text-xs font-medium text-char-800 dark:text-cream/90 hover:bg-char-800/5 dark:hover:bg-cream/5 disabled:opacity-50"
                           >
                             {updatingId === p.id
                               ? "Saving…"

@@ -525,26 +525,26 @@ export default function CashierPOSPage() {
       {unavailableProducts.length > 0 && (
         <div className="fixed left-4 top-20 z-40 w-72">
           {showUnavailablePanel ? (
-            <div className="rounded-card border border-ember-300 bg-white shadow-lg">
-              <div className="flex items-center justify-between border-b border-ember-100 bg-ember-50 px-3 py-2">
-                <p className="text-sm font-semibold text-ember-700">
+            <div className="rounded-card border border-ember-300 dark:border-ember-500/40 bg-white dark:bg-char-900 shadow-lg">
+              <div className="flex items-center justify-between border-b border-ember-100 dark:border-ember-500/20 bg-ember-50 dark:bg-ember-500/15 px-3 py-2">
+                <p className="text-sm font-semibold text-ember-700 dark:text-ember-300">
                   Unavailable ({unavailableProducts.length})
                 </p>
                 <button
                   onClick={() => setShowUnavailablePanel(false)}
-                  className="text-xs text-ember-600 hover:underline"
+                  className="text-xs text-ember-600 dark:text-ember-400 hover:underline"
                 >
                   Minimize
                 </button>
               </div>
-              <ul className="max-h-64 divide-y divide-char-700/10 overflow-y-auto">
+              <ul className="max-h-64 divide-y divide-char-700/10 dark:divide-cream/10 overflow-y-auto">
                 {unavailableProducts.map((p) => (
                   <li
                     key={p.id}
-                    className="px-3 py-2 text-sm text-char-700"
+                    className="px-3 py-2 text-sm text-char-700 dark:text-cream/80"
                   >
                     <span className="line-clamp-1">{p.name}</span>
-                    <span className="block text-xs text-char-700/40">{p.category}</span>
+                    <span className="block text-xs text-char-700/40 dark:text-cream/40">{p.category}</span>
                   </li>
                 ))}
               </ul>
@@ -552,7 +552,7 @@ export default function CashierPOSPage() {
           ) : (
             <button
               onClick={() => setShowUnavailablePanel(true)}
-              className="rounded-full border border-ember-300 bg-white px-3 py-1.5 text-sm font-medium text-ember-700 shadow-lg hover:bg-ember-50"
+              className="rounded-full border border-ember-300 dark:border-ember-500/40 bg-white dark:bg-char-900 px-3 py-1.5 text-sm font-medium text-ember-700 dark:text-ember-300 shadow-lg hover:bg-ember-50 dark:hover:bg-ember-500/15"
             >
               {unavailableProducts.length} unavailable
             </button>
@@ -566,12 +566,12 @@ export default function CashierPOSPage() {
           {readyAlerts.map((o) => (
             <div
               key={o.id}
-              className="rounded-card border border-green-300 bg-green-50 p-4 shadow-lg"
+              className="rounded-card border border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10 p-4 shadow-lg"
             >
-              <p className="font-display font-semibold text-green-800">
+              <p className="font-display font-semibold text-green-800 dark:text-green-300">
                 Order #{o.order_number} is ready!
               </p>
-              <p className="mb-3 text-sm text-green-700">
+              <p className="mb-3 text-sm text-green-700 dark:text-green-400">
                 The kitchen has finished this order.
               </p>
               <div className="flex gap-2">
@@ -583,7 +583,7 @@ export default function CashierPOSPage() {
                 </button>
                 <button
                   onClick={() => dismissAlert(o.id)}
-                  className="rounded px-3 py-1.5 text-sm text-green-700 hover:bg-green-100"
+                  className="rounded px-3 py-1.5 text-sm text-green-700 dark:text-green-400 hover:bg-green-100 dark:bg-green-500/15"
                 >
                   Dismiss
                 </button>
@@ -600,7 +600,7 @@ export default function CashierPOSPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search menu items…"
-          className="mb-3 w-full rounded-md border border-char-700/20 bg-white px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+          className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
         />
         <div className="mb-4 flex gap-2 overflow-x-auto">
           {categories.map((c) => (
@@ -610,7 +610,7 @@ export default function CashierPOSPage() {
               className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium ${
                 category === c
                   ? "bg-ember-500 text-white"
-                  : "bg-white text-char-700 hover:bg-char-800/5"
+                  : "bg-white dark:bg-char-900 text-char-700 dark:text-cream/80 hover:bg-char-800/5 dark:hover:bg-cream/5"
               }`}
             >
               {c}
@@ -619,7 +619,7 @@ export default function CashierPOSPage() {
         </div>
 
         {visibleProducts.length === 0 && (
-          <p className="text-sm text-char-700/60">No items match your search.</p>
+          <p className="text-sm text-char-700/60 dark:text-cream/60">No items match your search.</p>
         )}
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
@@ -628,13 +628,13 @@ export default function CashierPOSPage() {
               key={p.id}
               onClick={() => addToCart(p)}
               disabled={!p.is_available}
-              className={`overflow-hidden rounded-card border border-char-700/10 bg-white text-left shadow-sm transition-transform ${
+              className={`overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 text-left shadow-sm transition-transform ${
                 p.is_available
                   ? "hover:-translate-y-0.5 hover:shadow-md"
                   : "cursor-not-allowed opacity-75"
               }`}
             >
-              <div className="relative h-24 w-full bg-char-800/5">
+              <div className="relative h-24 w-full bg-char-800/5 dark:bg-cream/5">
                 {p.image_url ? (
                   <Image
                     src={p.image_url}
@@ -643,7 +643,7 @@ export default function CashierPOSPage() {
                     className={`object-cover ${!p.is_available ? "grayscale" : ""}`}
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-xs text-char-700/30">
+                  <div className="flex h-full items-center justify-center text-xs text-char-700/30 dark:text-cream/30">
                     No image
                   </div>
                 )}
@@ -674,14 +674,14 @@ export default function CashierPOSPage() {
                 )}
               </div>
               <div className="p-2.5">
-                <p className="line-clamp-1 text-sm font-medium text-char-900">
+                <p className="line-clamp-1 text-sm font-medium text-char-900 dark:text-cream">
                   {p.name}
                 </p>
-                <p className="text-sm font-semibold text-ember-600">
+                <p className="text-sm font-semibold text-ember-600 dark:text-ember-400">
                   {formatPeso(p.price)}
                 </p>
                 {p.description && (
-                  <p className="mt-0.5 line-clamp-2 text-xs text-char-700/50">
+                  <p className="mt-0.5 line-clamp-2 text-xs text-char-700/50 dark:text-cream/50">
                     {p.description}
                   </p>
                 )}
@@ -692,12 +692,12 @@ export default function CashierPOSPage() {
       </div>
 
       {/* ---------- Cart sidebar ---------- */}
-      <div className="h-fit rounded-card border border-char-700/10 bg-white p-4 shadow-sm lg:sticky lg:top-20">
-        <h2 className="mb-3 font-display font-semibold text-char-900">
+      <div className="h-fit rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-4 shadow-sm lg:sticky lg:top-20">
+        <h2 className="mb-3 font-display font-semibold text-char-900 dark:text-cream">
           Current order
         </h2>
 
-        <div className="mb-3 flex gap-1 rounded-md border border-char-700/20 bg-char-800/5 p-1">
+        <div className="mb-3 flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-char-800/5 dark:bg-cream/5 p-1">
           {(Object.keys(ORDER_TYPE_LABEL) as OrderType[]).map((t) => (
             <button
               key={t}
@@ -705,7 +705,7 @@ export default function CashierPOSPage() {
               className={`flex-1 rounded px-2 py-1.5 text-xs font-medium ${
                 orderType === t
                   ? "bg-ember-500 text-white"
-                  : "text-char-700/70 hover:bg-char-800/10"
+                  : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/10 dark:hover:bg-cream/10"
               }`}
             >
               {ORDER_TYPE_LABEL[t]}
@@ -717,7 +717,7 @@ export default function CashierPOSPage() {
             value={tableNumber}
             onChange={(e) => setTableNumber(e.target.value)}
             placeholder="Table number"
-            className="mb-3 w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+            className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
           />
         )}
 
@@ -727,10 +727,10 @@ export default function CashierPOSPage() {
               value={deliveredBy}
               onChange={(e) => setDeliveredBy(e.target.value)}
               placeholder="Delivered by (rider name)"
-              className="w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+              className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
             />
             <div>
-              <label className="mb-1 block text-xs font-medium text-char-700/70">
+              <label className="mb-1 block text-xs font-medium text-char-700/70 dark:text-cream/70">
                 Delivery fee (₱) — based on distance
               </label>
               <input
@@ -740,23 +740,23 @@ export default function CashierPOSPage() {
                 value={deliveryFee}
                 onChange={(e) => setDeliveryFee(e.target.value)}
                 placeholder="0.00"
-                className="w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+                className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
               />
             </div>
           </div>
         )}
 
         {orderType !== "dine_in" && (
-          <div className="mb-3 flex items-center justify-between rounded-md border border-char-700/15 px-3 py-2">
+          <div className="mb-3 flex items-center justify-between rounded-md border border-char-700/15 dark:border-cream/15 px-3 py-2">
             <div>
-              <p className="text-sm text-char-700">Containers</p>
-              <p className="text-xs text-char-700/50">₱10 each</p>
+              <p className="text-sm text-char-700 dark:text-cream/80">Containers</p>
+              <p className="text-xs text-char-700/50 dark:text-cream/50">₱10 each</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setContainerCount((n) => Math.max(0, n - 1))}
-                className="h-7 w-7 rounded border border-char-700/20 text-char-700"
+                className="h-7 w-7 rounded border border-char-700/20 dark:border-cream/15 text-char-700 dark:text-cream/80"
               >
                 −
               </button>
@@ -764,7 +764,7 @@ export default function CashierPOSPage() {
               <button
                 type="button"
                 onClick={() => setContainerCount((n) => n + 1)}
-                className="h-7 w-7 rounded border border-char-700/20 text-char-700"
+                className="h-7 w-7 rounded border border-char-700/20 dark:border-cream/15 text-char-700 dark:text-cream/80"
               >
                 +
               </button>
@@ -773,38 +773,38 @@ export default function CashierPOSPage() {
         )}
 
         {cart.length === 0 ? (
-          <p className="text-sm text-char-700/50">Tap items to add them.</p>
+          <p className="text-sm text-char-700/50 dark:text-cream/50">Tap items to add them.</p>
         ) : (
           <div className="mb-4 max-h-80 space-y-3 overflow-y-auto pr-1">
             {cart.map((l) => (
               <div key={l.product.id} className="space-y-1">
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-char-900">
+                    <p className="text-sm font-medium text-char-900 dark:text-cream">
                       {l.product.name}
                     </p>
-                    <p className="text-xs text-char-700/50">
+                    <p className="text-xs text-char-700/50 dark:text-cream/50">
                       {formatPeso(l.product.price)} each
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => changeQty(l.product.id, -1)}
-                      className="h-6 w-6 rounded border border-char-700/20 text-char-700"
+                      className="h-6 w-6 rounded border border-char-700/20 dark:border-cream/15 text-char-700 dark:text-cream/80"
                     >
                       −
                     </button>
                     <span className="w-5 text-center text-sm">{l.quantity}</span>
                     <button
                       onClick={() => changeQty(l.product.id, 1)}
-                      className="h-6 w-6 rounded border border-char-700/20 text-char-700"
+                      className="h-6 w-6 rounded border border-char-700/20 dark:border-cream/15 text-char-700 dark:text-cream/80"
                     >
                       +
                     </button>
                   </div>
                   <button
                     onClick={() => removeLine(l.product.id)}
-                    className="ml-1 text-xs text-ember-600 hover:underline"
+                    className="ml-1 text-xs text-ember-600 dark:text-ember-400 hover:underline"
                   >
                     Remove
                   </button>
@@ -813,16 +813,16 @@ export default function CashierPOSPage() {
                   value={l.special_instructions ?? ""}
                   onChange={(e) => setLineNote(l.product.id, e.target.value)}
                   placeholder="Note (e.g. no onions, extra spicy)"
-                  className="w-full rounded border border-char-700/15 px-2 py-1 text-xs text-char-700 placeholder:text-char-700/30 focus:border-ember-500 focus:outline-none"
+                  className="w-full rounded border border-char-700/15 dark:border-cream/15 px-2 py-1 text-xs text-char-700 dark:text-cream/80 placeholder:text-char-700/30 dark:placeholder:text-cream/30 focus:border-ember-500 focus:outline-none"
                 />
               </div>
             ))}
             {freeBonus && (
-              <div className="flex items-center justify-between rounded-md bg-green-50 px-2 py-1.5 text-sm">
-                <span className="text-green-800">
+              <div className="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-500/10 px-2 py-1.5 text-sm">
+                <span className="text-green-800 dark:text-green-300">
                   {freeBonus.quantity}× {freeBonus.product_name} (Free)
                 </span>
-                <span className="text-xs font-medium text-green-700">
+                <span className="text-xs font-medium text-green-700 dark:text-green-400">
                   {selectedPromo?.name}
                 </span>
               </div>
@@ -831,8 +831,8 @@ export default function CashierPOSPage() {
         )}
 
         {eligiblePromos.length > 0 && seniorPwdEntries.length === 0 && (
-          <div className="mb-3 border-t border-char-700/10 pt-3">
-            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-char-700/50">
+          <div className="mb-3 border-t border-char-700/10 dark:border-cream/10 pt-3">
+            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
               Promos available
             </p>
             <div className="space-y-1.5">
@@ -841,8 +841,8 @@ export default function CashierPOSPage() {
                   key={promo.id}
                   className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm ${
                     selectedPromoId === promo.id
-                      ? "border-ember-500 bg-ember-50"
-                      : "border-char-700/15 hover:bg-char-800/5"
+                      ? "border-ember-500 bg-ember-50 dark:bg-ember-500/15"
+                      : "border-char-700/15 dark:border-cream/15 hover:bg-char-800/5 dark:hover:bg-cream/5"
                   }`}
                 >
                   <input
@@ -855,7 +855,7 @@ export default function CashierPOSPage() {
                       )
                     }
                   />
-                  <span className="flex-1 text-char-800">{promo.name}</span>
+                  <span className="flex-1 text-char-800 dark:text-cream/90">{promo.name}</span>
                 </label>
               ))}
             </div>
@@ -863,15 +863,15 @@ export default function CashierPOSPage() {
         )}
 
         {cart.length > 0 && !selectedPromoId && (
-          <div className="mb-3 border-t border-char-700/10 pt-3">
+          <div className="mb-3 border-t border-char-700/10 dark:border-cream/10 pt-3">
             <div className="mb-1.5 flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
+              <p className="text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
                 Senior / PWD discount
               </p>
               {!showSeniorPwdForm && (
                 <button
                   onClick={() => setShowSeniorPwdForm(true)}
-                  className="text-xs font-medium text-ember-600 hover:underline"
+                  className="text-xs font-medium text-ember-600 dark:text-ember-400 hover:underline"
                 >
                   + Add ID
                 </button>
@@ -883,16 +883,16 @@ export default function CashierPOSPage() {
                 {seniorPwdEntries.map((entry, i) => (
                   <div
                     key={i}
-                    className="flex items-start justify-between rounded-md bg-green-50 px-2.5 py-1.5 text-sm"
+                    className="flex items-start justify-between rounded-md bg-green-50 dark:bg-green-500/10 px-2.5 py-1.5 text-sm"
                   >
                     <div>
-                      <p className="font-medium text-green-800">
+                      <p className="font-medium text-green-800 dark:text-green-300">
                         {entry.name}{" "}
-                        <span className="text-xs font-normal capitalize text-green-700">
+                        <span className="text-xs font-normal capitalize text-green-700 dark:text-green-400">
                           ({entry.id_type} · {entry.id_number})
                         </span>
                       </p>
-                      <p className="text-xs text-green-700">
+                      <p className="text-xs text-green-700 dark:text-green-400">
                         {entry.items.map((it) => `${it.quantity}× ${it.product_name}`).join(", ")}
                         {" — "}
                         {formatPeso(entry.discount_amount)} off
@@ -900,7 +900,7 @@ export default function CashierPOSPage() {
                     </div>
                     <button
                       onClick={() => removeSeniorPwdEntry(i)}
-                      className="ml-2 shrink-0 text-xs text-ember-600 hover:underline"
+                      className="ml-2 shrink-0 text-xs text-ember-600 dark:text-ember-400 hover:underline"
                     >
                       Remove
                     </button>
@@ -910,8 +910,8 @@ export default function CashierPOSPage() {
             )}
 
             {showSeniorPwdForm && (
-              <div className="rounded-md border border-char-700/15 p-2.5">
-                <div className="mb-2 flex gap-1 rounded-md border border-char-700/20 bg-char-800/5 p-1">
+              <div className="rounded-md border border-char-700/15 dark:border-cream/15 p-2.5">
+                <div className="mb-2 flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-char-800/5 dark:bg-cream/5 p-1">
                   {(["senior", "pwd"] as SeniorPwdIdType[]).map((t) => (
                     <button
                       key={t}
@@ -919,7 +919,7 @@ export default function CashierPOSPage() {
                       className={`flex-1 rounded px-2 py-1 text-xs font-medium capitalize ${
                         newEntryType === t
                           ? "bg-ember-500 text-white"
-                          : "text-char-700/70 hover:bg-char-800/10"
+                          : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/10 dark:hover:bg-cream/10"
                       }`}
                     >
                       {t === "pwd" ? "PWD" : "Senior Citizen"}
@@ -930,16 +930,16 @@ export default function CashierPOSPage() {
                   value={newEntryIdNumber}
                   onChange={(e) => setNewEntryIdNumber(e.target.value)}
                   placeholder={newEntryType === "pwd" ? "PWD ID number" : "OSCA/Senior ID number"}
-                  className="mb-1.5 w-full rounded border border-char-700/20 px-2 py-1.5 text-sm focus:border-ember-500 focus:outline-none"
+                  className="mb-1.5 w-full rounded border border-char-700/20 dark:border-cream/15 px-2 py-1.5 text-sm focus:border-ember-500 focus:outline-none"
                 />
                 <input
                   value={newEntryName}
                   onChange={(e) => setNewEntryName(e.target.value)}
                   placeholder="Name on ID"
-                  className="mb-2 w-full rounded border border-char-700/20 px-2 py-1.5 text-sm focus:border-ember-500 focus:outline-none"
+                  className="mb-2 w-full rounded border border-char-700/20 dark:border-cream/15 px-2 py-1.5 text-sm focus:border-ember-500 focus:outline-none"
                 />
 
-                <p className="mb-1 text-xs font-medium text-char-700/70">
+                <p className="mb-1 text-xs font-medium text-char-700/70 dark:text-cream/70">
                   Which items are exclusively theirs?
                 </p>
                 <div className="mb-2 max-h-32 space-y-1 overflow-y-auto">
@@ -952,7 +952,7 @@ export default function CashierPOSPage() {
                         key={l.product.id}
                         className="flex items-center justify-between text-sm"
                       >
-                        <span className="text-char-800">{l.product.name}</span>
+                        <span className="text-char-800 dark:text-cream/90">{l.product.name}</span>
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() =>
@@ -961,7 +961,7 @@ export default function CashierPOSPage() {
                                 [l.product.id]: Math.max(0, claimed - 1),
                               }))
                             }
-                            className="h-5 w-5 rounded border border-char-700/20 text-xs text-char-700"
+                            className="h-5 w-5 rounded border border-char-700/20 dark:border-cream/15 text-xs text-char-700 dark:text-cream/80"
                           >
                             −
                           </button>
@@ -973,7 +973,7 @@ export default function CashierPOSPage() {
                                 [l.product.id]: Math.min(remaining, claimed + 1),
                               }))
                             }
-                            className="h-5 w-5 rounded border border-char-700/20 text-xs text-char-700"
+                            className="h-5 w-5 rounded border border-char-700/20 dark:border-cream/15 text-xs text-char-700 dark:text-cream/80"
                           >
                             +
                           </button>
@@ -983,9 +983,9 @@ export default function CashierPOSPage() {
                   })}
                 </div>
 
-                <div className="mb-2 flex justify-between text-xs text-char-700/70">
+                <div className="mb-2 flex justify-between text-xs text-char-700/70 dark:text-cream/70">
                   <span>Discount for this ID</span>
-                  <span className="font-medium text-green-700">
+                  <span className="font-medium text-green-700 dark:text-green-400">
                     {formatPeso(newEntryDiscount)}
                   </span>
                 </div>
@@ -998,7 +998,7 @@ export default function CashierPOSPage() {
                       setNewEntryName("");
                       setNewEntryClaims({});
                     }}
-                    className="rounded px-3 py-1.5 text-xs text-char-700 hover:bg-char-800/5"
+                    className="rounded px-3 py-1.5 text-xs text-char-700 dark:text-cream/80 hover:bg-char-800/5 dark:hover:bg-cream/5"
                   >
                     Cancel
                   </button>
@@ -1019,45 +1019,45 @@ export default function CashierPOSPage() {
           </div>
         )}
 
-        <div className="mb-3 space-y-1 border-t border-char-700/10 pt-3 text-sm">
+        <div className="mb-3 space-y-1 border-t border-char-700/10 dark:border-cream/10 pt-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-char-700/70">Subtotal</span>
-            <span className="text-char-900">{formatPeso(subtotal)}</span>
+            <span className="text-char-700/70 dark:text-cream/70">Subtotal</span>
+            <span className="text-char-900 dark:text-cream">{formatPeso(subtotal)}</span>
           </div>
           {discountAmount > 0 && (
-            <div className="flex justify-between text-green-700">
+            <div className="flex justify-between text-green-700 dark:text-green-400">
               <span>Discount ({selectedPromo?.name})</span>
               <span>−{formatPeso(discountAmount)}</span>
             </div>
           )}
           {seniorPwdDiscountTotal > 0 && (
-            <div className="flex justify-between text-green-700">
+            <div className="flex justify-between text-green-700 dark:text-green-400">
               <span>Senior/PWD discount ({seniorPwdEntries.length})</span>
               <span>−{formatPeso(seniorPwdDiscountTotal)}</span>
             </div>
           )}
           {containerFeeAmount > 0 && (
-            <div className="flex justify-between text-char-700/70">
+            <div className="flex justify-between text-char-700/70 dark:text-cream/70">
               <span>Containers ({containerCount})</span>
               <span>+{formatPeso(containerFeeAmount)}</span>
             </div>
           )}
           {deliveryFeeAmount > 0 && (
-            <div className="flex justify-between text-char-700/70">
+            <div className="flex justify-between text-char-700/70 dark:text-cream/70">
               <span>Delivery fee</span>
               <span>+{formatPeso(deliveryFeeAmount)}</span>
             </div>
           )}
-          <div className="flex justify-between text-base font-semibold text-char-900">
+          <div className="flex justify-between text-base font-semibold text-char-900 dark:text-cream">
             <span>Total</span>
             <span>{formatPeso(total)}</span>
           </div>
         </div>
 
-        <label className="mb-1 block text-xs font-medium text-char-700/70">
+        <label className="mb-1 block text-xs font-medium text-char-700/70 dark:text-cream/70">
           Payment method
         </label>
-        <div className="mb-3 flex gap-1 rounded-md border border-char-700/20 bg-char-800/5 p-1">
+        <div className="mb-3 flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-char-800/5 dark:bg-cream/5 p-1">
           {(["cash", "gcash"] as PaymentMethod[]).map((m) => (
             <button
               key={m}
@@ -1065,7 +1065,7 @@ export default function CashierPOSPage() {
               className={`flex-1 rounded px-2 py-1.5 text-sm font-medium ${
                 paymentMethod === m
                   ? "bg-ember-500 text-white"
-                  : "text-char-700/70 hover:bg-char-800/10"
+                  : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/10 dark:hover:bg-cream/10"
               }`}
             >
               {m === "cash" ? "Cash" : "E-Payment"}
@@ -1075,7 +1075,7 @@ export default function CashierPOSPage() {
 
         {paymentMethod === "cash" && (
           <>
-            <label className="mb-1 block text-xs font-medium text-char-700/70">
+            <label className="mb-1 block text-xs font-medium text-char-700/70 dark:text-cream/70">
               Amount tendered
             </label>
             <input
@@ -1084,7 +1084,7 @@ export default function CashierPOSPage() {
               step="0.01"
               value={tendered}
               onChange={(e) => setTendered(e.target.value)}
-              className="mb-2 w-full rounded-md border border-char-700/20 px-3 py-2 text-sm"
+              className="mb-2 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm"
               placeholder="0.00"
             />
             <div className="mb-2 flex flex-wrap gap-1.5">
@@ -1093,7 +1093,7 @@ export default function CashierPOSPage() {
                   key={bill}
                   type="button"
                   onClick={() => setTendered(String(bill))}
-                  className="rounded border border-char-700/20 px-2.5 py-1 text-xs font-medium text-char-700 hover:border-ember-500 hover:text-ember-600"
+                  className="rounded border border-char-700/20 dark:border-cream/15 px-2.5 py-1 text-xs font-medium text-char-700 dark:text-cream/80 hover:border-ember-500 hover:text-ember-600 dark:hover:text-ember-400"
                 >
                   ₱{bill}
                 </button>
@@ -1101,14 +1101,14 @@ export default function CashierPOSPage() {
               <button
                 type="button"
                 onClick={() => setTendered(String(total))}
-                className="rounded border border-char-700/20 px-2.5 py-1 text-xs font-medium text-char-700 hover:border-ember-500 hover:text-ember-600"
+                className="rounded border border-char-700/20 dark:border-cream/15 px-2.5 py-1 text-xs font-medium text-char-700 dark:text-cream/80 hover:border-ember-500 hover:text-ember-600 dark:hover:text-ember-400"
               >
                 Exact
               </button>
             </div>
             <div className="mb-3 flex justify-between text-sm">
-              <span className="text-char-700/70">Change</span>
-              <span className="font-medium text-char-900">
+              <span className="text-char-700/70 dark:text-cream/70">Change</span>
+              <span className="font-medium text-char-900 dark:text-cream">
                 {formatPeso(change)}
               </span>
             </div>
@@ -1122,13 +1122,13 @@ export default function CashierPOSPage() {
               onChange={setPaymentProvider}
             />
             <div>
-              <label className="mb-1 block text-xs font-medium text-char-700/70">
+              <label className="mb-1 block text-xs font-medium text-char-700/70 dark:text-cream/70">
                 Reference number
               </label>
               <input
                 value={paymentReference}
                 onChange={(e) => setPaymentReference(e.target.value)}
-                className="w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+                className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
                 placeholder="Enter after payment is sent & received"
               />
             </div>

@@ -25,11 +25,11 @@ const ORDER_TYPE_LABEL: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-  ready: "bg-mustard-100 text-mustard-700",
-  preparing: "bg-char-800/10 text-char-700",
-  queued: "bg-char-800/10 text-char-700",
+  completed: "bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400",
+  cancelled: "bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400",
+  ready: "bg-mustard-100 dark:bg-mustard-500/20 text-mustard-700 dark:text-mustard-300",
+  preparing: "bg-char-800/10 dark:bg-cream/10 text-char-700 dark:text-cream/80",
+  queued: "bg-char-800/10 dark:bg-cream/10 text-char-700 dark:text-cream/80",
 };
 
 export default function AdminTransactionsPage() {
@@ -107,14 +107,14 @@ export default function AdminTransactionsPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-char-900">
+          <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
             Transactions
           </h1>
-          <p className="text-sm text-char-700/70">
+          <p className="text-sm text-char-700/70 dark:text-cream/70">
             Every order across all cashiers, most recent first.
           </p>
         </div>
-        <div className="flex gap-1 rounded-full bg-char-800/5 p-1">
+        <div className="flex gap-1 rounded-full bg-char-800/5 dark:bg-cream/5 p-1">
           {RANGE_OPTIONS.map((opt) => (
             <button
               key={opt.days}
@@ -122,7 +122,7 @@ export default function AdminTransactionsPage() {
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                 rangeDays === opt.days
                   ? "bg-ember-500 text-white"
-                  : "text-char-700 hover:bg-char-800/10"
+                  : "text-char-700 dark:text-cream/80 hover:bg-char-800/10 dark:hover:bg-cream/10"
               }`}
             >
               {opt.label}
@@ -132,40 +132,40 @@ export default function AdminTransactionsPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:max-w-2xl sm:grid-cols-4">
-        <div className="rounded-card border border-char-700/10 bg-white p-4 shadow-sm">
-          <p className="text-xs text-char-700/50">Transactions</p>
-          <p className="font-display text-2xl font-semibold text-char-900">
+        <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-4 shadow-sm">
+          <p className="text-xs text-char-700/50 dark:text-cream/50">Transactions</p>
+          <p className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
             {summary.count}
           </p>
         </div>
-        <div className="rounded-card border border-char-700/10 bg-white p-4 shadow-sm">
-          <p className="text-xs text-char-700/50">Revenue</p>
-          <p className="font-display text-2xl font-semibold text-ember-600">
+        <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-4 shadow-sm">
+          <p className="text-xs text-char-700/50 dark:text-cream/50">Revenue</p>
+          <p className="font-display text-2xl font-semibold text-ember-600 dark:text-ember-400">
             {formatPeso(summary.revenue)}
           </p>
         </div>
-        <div className="rounded-card border border-char-700/10 bg-white p-4 shadow-sm">
-          <p className="text-xs text-char-700/50">Cash</p>
-          <p className="font-display text-2xl font-semibold text-char-900">
+        <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-4 shadow-sm">
+          <p className="text-xs text-char-700/50 dark:text-cream/50">Cash</p>
+          <p className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
             {formatPeso(summary.cash)}
           </p>
         </div>
-        <div className="rounded-card border border-char-700/10 bg-white p-4 shadow-sm">
-          <p className="text-xs text-char-700/50">E-Payment</p>
-          <p className="font-display text-2xl font-semibold text-char-900">
+        <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-4 shadow-sm">
+          <p className="text-xs text-char-700/50 dark:text-cream/50">E-Payment</p>
+          <p className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
             {formatPeso(summary.epayment)}
           </p>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-char-700/60">Loading transactions…</p>
+        <p className="text-char-700/60 dark:text-cream/60">Loading transactions…</p>
       ) : orders.length === 0 ? (
-        <p className="text-char-700/60">No transactions in this range yet.</p>
+        <p className="text-char-700/60 dark:text-cream/60">No transactions in this range yet.</p>
       ) : (
-        <div className="overflow-hidden rounded-card border border-char-700/10 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="bg-char-800/5 text-xs uppercase text-char-700/50">
+            <thead className="bg-char-800/5 dark:bg-cream/5 text-xs uppercase text-char-700/50 dark:text-cream/50">
               <tr>
                 <th className="px-4 py-2.5">Order</th>
                 <th className="px-4 py-2.5">Time</th>
@@ -178,19 +178,19 @@ export default function AdminTransactionsPage() {
                 <th className="px-4 py-2.5"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-char-700/10">
+            <tbody className="divide-y divide-char-700/10 dark:divide-cream/10">
               {orders.map((o) => (
                 <tr key={o.id}>
-                  <td className="px-4 py-3 font-medium text-char-900">
+                  <td className="px-4 py-3 font-medium text-char-900 dark:text-cream">
                     #{o.order_number}
                   </td>
-                  <td className="px-4 py-3 text-char-700/70">
+                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
                     {formatDateTime(o.created_at)}
                   </td>
-                  <td className="px-4 py-3 text-char-700/70">
+                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
                     {o.profiles?.full_name ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-char-700/70">
+                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
                     {ORDER_TYPE_LABEL[o.order_type] ?? o.order_type}
                     {o.order_type === "dine_in" && o.table_number
                       ? ` · Table ${o.table_number}`
@@ -198,16 +198,16 @@ export default function AdminTransactionsPage() {
                     {o.order_type === "delivery" && (
                       <button
                         onClick={() => setRiderOrder(o)}
-                        className="ml-1.5 text-xs text-ember-600 hover:underline"
+                        className="ml-1.5 text-xs text-ember-600 dark:text-ember-400 hover:underline"
                       >
                         {o.delivered_by ? `· ${o.delivered_by}` : "· Set rider"}
                       </button>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-char-700/70">
+                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
                     {o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items
                   </td>
-                  <td className="px-4 py-3 text-char-700/70">
+                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
                     {paymentMethodLabel(o.payment_method)}
                     {o.payment_provider && ` · ${o.payment_provider}`}
                   </td>
@@ -215,27 +215,27 @@ export default function AdminTransactionsPage() {
                     <span
                       title={o.cancel_reason ?? undefined}
                       className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                        STATUS_STYLES[o.status] ?? "bg-char-800/10 text-char-700"
+                        STATUS_STYLES[o.status] ?? "bg-char-800/10 dark:bg-cream/10 text-char-700 dark:text-cream/80"
                       }`}
                     >
                       {o.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold text-char-900">
+                  <td className="px-4 py-3 text-right font-semibold text-char-900 dark:text-cream">
                     {formatPeso(o.total)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => setViewingOrder(o)}
-                        className="rounded border border-char-700/20 px-3 py-1.5 text-xs font-medium text-char-800 hover:bg-char-800/5"
+                        className="rounded border border-char-700/20 dark:border-cream/15 px-3 py-1.5 text-xs font-medium text-char-800 dark:text-cream/90 hover:bg-char-800/5 dark:hover:bg-cream/5"
                       >
                         Receipt
                       </button>
                       {CANCELLABLE_STATUSES.includes(o.status) && (
                         <button
                           onClick={() => setCancellingOrder(o)}
-                          className="rounded border border-ember-300 px-3 py-1.5 text-xs font-medium text-ember-600 hover:bg-ember-50"
+                          className="rounded border border-ember-300 dark:border-ember-500/40 px-3 py-1.5 text-xs font-medium text-ember-600 dark:text-ember-400 hover:bg-ember-50 dark:hover:bg-ember-500/15"
                         >
                           Cancel
                         </button>
