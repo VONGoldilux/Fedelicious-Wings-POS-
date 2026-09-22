@@ -1,123 +1,57 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { FluentProvider, Title2, Text, tokens } from "@fluentui/react-components";
 import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  CartesianGrid,
-} from "recharts";
+  ChartMultipleRegular,
+  WalletRegular,
+  TableRegular,
+  ShoppingBagRegular,
+  VehicleCarRegular,
+  MoneyHandRegular,
+  WalletCreditCardRegular,
+} from "@fluentui/react-icons";
 import { createClient } from "@/lib/supabase/client";
-import { formatPeso, paymentMethodLabel } from "@/lib/utils";
 import { useIsDarkMode } from "@/lib/use-dark-mode";
 import type { Product } from "@/lib/types";
 
-// ---------------------------------------------------------------------------
-// Local shapes. These are computed/aggregated views for this page only —
-// they don't mirror a DB table, so (matching this app's convention, see
-// admin/dashboard/page.tsx) they stay local instead of living in lib/types.
-// ---------------------------------------------------------------------------
-interface CategoryItemStat {
-  productId: string;
-  name: string;
-  category: string;
-  qty: number;
-  revenue: number;
-}
+import { brandLightTheme, brandDarkTheme } from "@/components/fluent/theme";
+import { useSharedStyles } from "@/components/fluent/styles";
+import { PageHeader } from "@/components/fluent/PageHeader";
+import { SegmentedControl } from "@/components/fluent/SegmentedControl";
+import { LoadingState } from "@/components/fluent/EmptyState";
+import { MetricDonutCard, type DonutMetricItem } from "./MetricDonutCard";
+import { CategoryCard } from "./CategoryCard";
+import { DeadStockTable } from "./DeadStockTable";
+import { TrendingChart } from "./TrendingChart";
+import {
+  type CategoryItemStat,
+  type Granularity,
+  RANGE_OPTIONS,
+  GRANULARITY_WINDOW,
+  ORDER_TYPE_LABEL,
+  ORDER_TYPES,
+  PAYMENT_METHODS,
+  ORDER_TYPE_COLORS,
+  PAYMENT_COLORS,
+  bucketKeyFor,
+  bucketLabelFor,
+} from "./constants";
+import { paymentMethodLabel } from "@/lib/utils";
 
-type Granularity = "day" | "week" | "month" | "year";
-
-const RANGE_OPTIONS = [
-  { label: "Today", days: 1 },
-  { label: "Last 7 days", days: 7 },
-  { label: "Last 30 days", days: 30 },
-  { label: "Last 90 days", days: 90 },
-];
-
-const GRANULARITY_OPTIONS: { label: string; value: Granularity }[] = [
-  { label: "Day", value: "day" },
-  { label: "Week", value: "week" },
-  { label: "Month", value: "month" },
-  { label: "Year", value: "year" },
-];
-
-// How far back to fetch for each trend granularity, and how many buckets
-// that spans — e.g. "Day" plots the last 14 individual days, "Year" plots
-// the last 5 calendar years.
-const GRANULARITY_WINDOW: Record<Granularity, { lookbackDays: number; buckets: number }> = {
-  day: { lookbackDays: 14, buckets: 14 },
-  week: { lookbackDays: 84, buckets: 12 },
-  month: { lookbackDays: 365, buckets: 12 },
-  year: { lookbackDays: 365 * 5, buckets: 5 },
+const ORDER_TYPE_ICON: Record<string, typeof TableRegular> = {
+  dine_in: TableRegular,
+  takeout: ShoppingBagRegular,
+  delivery: VehicleCarRegular,
 };
-
-const TREND_COLORS = ["#F0662B", "#D49B22", "#463830", "#FF8A4C", "#2F6F5E"];
-
-const ORDER_TYPE_LABEL: Record<string, string> = {
-  dine_in: "Dine-in",
-  takeout: "Takeout",
-  delivery: "Delivery",
+const PAYMENT_ICON: Record<string, typeof MoneyHandRegular> = {
+  cash: MoneyHandRegular,
+  gcash: WalletCreditCardRegular,
 };
-const ORDER_TYPES = ["dine_in", "takeout", "delivery"] as const;
-const PAYMENT_METHODS = ["cash", "gcash"] as const;
-
-const ORDER_TYPE_COLORS: Record<string, string> = {
-  dine_in: "#F0662B",
-  takeout: "#D49B22",
-  delivery: "#463830",
-};
-const PAYMENT_COLORS: Record<string, string> = {
-  cash: "#F0662B",
-  gcash: "#D49B22",
-};
-
-function bucketKeyFor(date: Date, granularity: Granularity): string {
-  if (granularity === "day") {
-    return date.toISOString().slice(0, 10); // YYYY-MM-DD
-  }
-  if (granularity === "week") {
-    // Key = Monday of that week, so same-week dates share a bucket.
-    const d = new Date(date);
-    const day = (d.getDay() + 6) % 7; // Mon=0..Sun=6
-    d.setDate(d.getDate() - day);
-    return d.toISOString().slice(0, 10);
-  }
-  if (granularity === "month") {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-  }
-  return String(date.getFullYear());
-}
-
-function bucketLabelFor(key: string, granularity: Granularity): string {
-  if (granularity === "day" || granularity === "week") {
-    const d = new Date(key + "T00:00:00");
-    return d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
-  }
-  if (granularity === "month") {
-    const [y, m] = key.split("-");
-    const d = new Date(Number(y), Number(m) - 1, 1);
-    return d.toLocaleDateString("en-PH", { month: "short", year: "2-digit" });
-  }
-  return key;
-}
 
 export default function AnalyticsPage() {
   const supabase = createClient();
   const isDark = useIsDarkMode();
-  const gridColor = isDark ? "#463830" : "#e5decf";
-  const axisColor = isDark ? "#c9bfae" : "#7a6a58";
-  const tooltipStyle = {
-    background: isDark ? "#241D18" : "#fff",
-    border: `1px solid ${gridColor}`,
-    color: isDark ? "#FBF4EA" : "#241D18",
-  };
 
   const [products, setProducts] = useState<Product[]>([]);
   const [rangeDays, setRangeDays] = useState(30);
@@ -297,7 +231,7 @@ export default function AnalyticsPage() {
     [categoryStats]
   );
 
-  const rangeLabel = RANGE_OPTIONS.find((o) => o.days === rangeDays)?.label ?? "";
+  const rangeLabel = RANGE_OPTIONS.find((o) => o.value === rangeDays)?.label ?? "";
 
   // ---- Trending chart: top 5 items overall in this window, bucketed ------
   const { chartData, topProductNames } = useMemo(() => {
@@ -327,124 +261,129 @@ export default function AnalyticsPage() {
     return { chartData: rows, topProductNames: top };
   }, [trendRows, granularity]);
 
+  const channelItems: DonutMetricItem[] = ORDER_TYPES.map((type) => ({
+    key: type,
+    label: ORDER_TYPE_LABEL[type],
+    count: orderTypeStats[type]?.count ?? 0,
+    revenue: orderTypeStats[type]?.revenue ?? 0,
+    color: ORDER_TYPE_COLORS[type],
+    Icon: ORDER_TYPE_ICON[type],
+  }));
+
+  const paymentItems: DonutMetricItem[] = PAYMENT_METHODS.map((method) => ({
+    key: method,
+    label: paymentMethodLabel(method),
+    count: paymentStats[method]?.count ?? 0,
+    revenue: paymentStats[method]?.revenue ?? 0,
+    color: PAYMENT_COLORS[method],
+    Icon: PAYMENT_ICON[method],
+  }));
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
-          Analytics
-        </h1>
-        <p className="text-sm text-char-700/70 dark:text-cream/70">
-          What's selling, what isn't, and how it's trending.
-        </p>
-      </div>
+    // Scoped to this page only — the outer cream/char-950 canvas from
+    // RoleGate stays as-is, this just themes the Fluent components that sit
+    // on top of it (FluentProvider's own background is switched off below).
+    <FluentProvider theme={isDark ? brandDarkTheme : brandLightTheme} style={{ backgroundColor: "transparent" }}>
+      <AnalyticsContent
+        rangeDays={rangeDays}
+        setRangeDays={setRangeDays}
+        granularity={granularity}
+        setGranularity={setGranularity}
+        loadingOrderTypes={loadingOrderTypes}
+        channelItems={channelItems}
+        paymentItems={paymentItems}
+        loadingStats={loadingStats}
+        byCategory={byCategory}
+        deadStock={deadStock}
+        rangeLabel={rangeLabel}
+        loadingTrend={loadingTrend}
+        chartData={chartData}
+        topProductNames={topProductNames}
+      />
+    </FluentProvider>
+  );
+}
 
-      {/* ---------- Orders by channel ---------- */}
-      <div className="mb-8">
-        <h2 className="mb-4 font-display font-semibold text-char-900 dark:text-cream">
-          Orders by channel
-        </h2>
-        {loadingOrderTypes ? (
-          <p className="text-char-700/60 dark:text-cream/60">Loading…</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {ORDER_TYPES.map((type) => {
-                const stat = orderTypeStats[type] ?? { count: 0, revenue: 0 };
-                return (
-                  <div
-                    key={type}
-                    className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm"
-                  >
-                    <p className="text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
-                      {ORDER_TYPE_LABEL[type]}
-                    </p>
-                    <p className="mt-1 font-display text-2xl font-semibold text-char-900 dark:text-cream">
-                      {stat.count} orders
-                    </p>
-                    <p className="text-sm text-ember-600 dark:text-ember-400">{formatPeso(stat.revenue)}</p>
-                  </div>
-                );
-              })}
-            </div>
-            <SharePie
-              data={ORDER_TYPES.map((type) => ({
-                name: ORDER_TYPE_LABEL[type],
-                value: orderTypeStats[type]?.revenue ?? 0,
-                color: ORDER_TYPE_COLORS[type],
-              }))}
-            />
-          </div>
-        )}
-      </div>
+function AnalyticsContent({
+  rangeDays,
+  setRangeDays,
+  granularity,
+  setGranularity,
+  loadingOrderTypes,
+  channelItems,
+  paymentItems,
+  loadingStats,
+  byCategory,
+  deadStock,
+  rangeLabel,
+  loadingTrend,
+  chartData,
+  topProductNames,
+}: {
+  rangeDays: number;
+  setRangeDays: (v: number) => void;
+  granularity: Granularity;
+  setGranularity: (v: Granularity) => void;
+  loadingOrderTypes: boolean;
+  channelItems: DonutMetricItem[];
+  paymentItems: DonutMetricItem[];
+  loadingStats: boolean;
+  byCategory: { category: string; sold: CategoryItemStat[]; soldQty: number; soldRevenue: number }[];
+  deadStock: CategoryItemStat[];
+  rangeLabel: string;
+  loadingTrend: boolean;
+  chartData: Record<string, number | string>[];
+  topProductNames: string[];
+}) {
+  const styles = useSharedStyles();
 
-      {/* ---------- Payment methods ---------- */}
-      <div className="mb-8">
-        <h2 className="mb-4 font-display font-semibold text-char-900 dark:text-cream">
-          Payment methods
-        </h2>
-        {loadingOrderTypes ? (
-          <p className="text-char-700/60 dark:text-cream/60">Loading…</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:max-w-lg">
-              {PAYMENT_METHODS.map((method) => {
-                const stat = paymentStats[method] ?? { count: 0, revenue: 0 };
-                return (
-                  <div
-                    key={method}
-                    className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm"
-                  >
-                    <p className="text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
-                      {paymentMethodLabel(method)}
-                    </p>
-                    <p className="mt-1 font-display text-2xl font-semibold text-char-900 dark:text-cream">
-                      {stat.count} orders
-                    </p>
-                    <p className="text-sm text-ember-600 dark:text-ember-400">{formatPeso(stat.revenue)}</p>
-                  </div>
-                );
-              })}
-            </div>
-            <SharePie
-              data={PAYMENT_METHODS.map((method) => ({
-                name: paymentMethodLabel(method),
-                value: paymentStats[method]?.revenue ?? 0,
-                color: PAYMENT_COLORS[method],
-              }))}
-            />
-          </div>
-        )}
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacingVerticalXXL }}>
+      <PageHeader
+        title="Analytics"
+        subtitle="What's selling, what isn't, and how it's trending."
+        action={
+          <SegmentedControl
+            ariaLabel="Date range"
+            options={RANGE_OPTIONS}
+            value={rangeDays}
+            onChange={setRangeDays}
+          />
+        }
+      />
+
+      {/* ---------- Orders by channel + Payment methods ---------- */}
+      <div className={styles.cardGrid}>
+        <MetricDonutCard
+          title="Orders by channel"
+          HeaderIcon={ChartMultipleRegular}
+          items={channelItems}
+          loading={loadingOrderTypes}
+          emptyLabel="No orders yet in this window"
+        />
+        <MetricDonutCard
+          title="Payment methods"
+          HeaderIcon={WalletRegular}
+          items={paymentItems}
+          loading={loadingOrderTypes}
+          emptyLabel="No payments yet in this window"
+        />
       </div>
 
       {/* ---------- Best sellers per category ---------- */}
-      <div className="mb-8">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display font-semibold text-char-900 dark:text-cream">
+      <div>
+        <div className={styles.sectionHeaderRow}>
+          <Title2 as="h2" style={{ fontSize: tokens.fontSizeBase500 }}>
             Best sellers by category
-          </h2>
-          <div className="flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 p-1">
-            {RANGE_OPTIONS.map((opt) => (
-              <button
-                key={opt.days}
-                onClick={() => setRangeDays(opt.days)}
-                className={`rounded px-3 py-1.5 text-sm font-medium ${
-                  rangeDays === opt.days
-                    ? "bg-ember-500 text-white"
-                    : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/5 dark:hover:bg-cream/5"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          </Title2>
         </div>
 
         {loadingStats ? (
-          <p className="text-char-700/60 dark:text-cream/60">Loading…</p>
+          <LoadingState />
         ) : byCategory.length === 0 ? (
-          <p className="text-char-700/60 dark:text-cream/60">No menu items yet.</p>
+          <Text style={{ color: tokens.colorNeutralForeground3 }}>No menu items yet.</Text>
         ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className={styles.cardGrid}>
             {byCategory.map((c) => (
               <CategoryCard key={c.category} {...c} />
             ))}
@@ -454,219 +393,17 @@ export default function AnalyticsPage() {
 
       {/* ---------- Dead stock: zero sales across all categories ---------- */}
       {!loadingStats && deadStock.length > 0 && (
-        <div className="mb-8 rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-display font-semibold text-char-900 dark:text-cream">
-              No sales — {rangeLabel.toLowerCase()}
-            </h2>
-            <p className="text-xs text-char-700/50 dark:text-cream/50">
-              {deadStock.length} item{deadStock.length === 1 ? "" : "s"} · candidates for trimming from the menu
-            </p>
-          </div>
-          <div className="grid max-h-80 grid-cols-1 gap-x-6 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
-            {deadStock.map((item) => (
-              <div
-                key={item.productId}
-                className="flex items-center justify-between gap-2 border-b border-char-700/5 dark:border-cream/5 py-1.5 text-sm last:border-0"
-              >
-                <span className="truncate text-char-800 dark:text-cream/80" title={item.name}>
-                  {item.name}
-                </span>
-                <span className="shrink-0 text-xs text-char-700/40 dark:text-cream/40">{item.category}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <DeadStockTable items={deadStock} rangeLabel={rangeLabel} />
       )}
 
       {/* ---------- Trending graph ---------- */}
-      <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display font-semibold text-char-900 dark:text-cream">
-            Trending items
-          </h2>
-          <div className="flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 p-1">
-            {GRANULARITY_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setGranularity(opt.value)}
-                className={`rounded px-3 py-1.5 text-sm font-medium ${
-                  granularity === opt.value
-                    ? "bg-ember-500 text-white"
-                    : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/5 dark:hover:bg-cream/5"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {loadingTrend ? (
-          <p className="text-char-700/60 dark:text-cream/60">Loading…</p>
-        ) : chartData.length === 0 ? (
-          <p className="text-char-700/60 dark:text-cream/60">No sales in this window yet.</p>
-        ) : (
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                <XAxis dataKey="bucket" fontSize={12} stroke={axisColor} />
-                <YAxis fontSize={12} stroke={axisColor} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Legend
-                  wrapperStyle={{ fontSize: 12, color: isDark ? "#FBF4EA" : "#241D18" }}
-                />
-                {topProductNames.map((name, i) => (
-                  <Line
-                    key={name}
-                    type="monotone"
-                    dataKey={name}
-                    stroke={TREND_COLORS[i % TREND_COLORS.length]}
-                    strokeWidth={2}
-                    dot={false}
-                    connectNulls
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SharePie({
-  data,
-}: {
-  data: { name: string; value: number; color: string }[];
-}) {
-  const isDark = useIsDarkMode();
-  const total = data.reduce((sum, d) => sum + d.value, 0);
-  if (total === 0) {
-    return (
-      <div className="flex items-center justify-center rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 text-sm text-char-700/50 dark:text-cream/50 shadow-sm">
-        No revenue yet
-      </div>
-    );
-  }
-  return (
-    <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-3 shadow-sm">
-      <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              innerRadius="55%"
-              outerRadius="80%"
-              paddingAngle={2}
-            >
-              {data.map((d) => (
-                <Cell key={d.name} fill={d.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(v: number) => formatPeso(v)}
-              contentStyle={{
-                background: isDark ? "#241D18" : "#fff",
-                border: `1px solid ${isDark ? "#463830" : "#e5decf"}`,
-                color: isDark ? "#FBF4EA" : "#241D18",
-              }}
-            />
-            <Legend
-              verticalAlign="bottom"
-              height={36}
-              wrapperStyle={{ fontSize: 12, color: isDark ? "#FBF4EA" : "#241D18" }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-const CATEGORY_CARD_VISIBLE = 6;
-
-function CategoryCard({
-  category,
-  sold,
-  soldQty,
-  soldRevenue,
-}: {
-  category: string;
-  sold: CategoryItemStat[];
-  soldQty: number;
-  soldRevenue: number;
-}) {
-  const visible = sold.slice(0, CATEGORY_CARD_VISIBLE);
-  const rest = sold.slice(CATEGORY_CARD_VISIBLE);
-  const topQty = sold[0]?.qty ?? 0;
-
-  return (
-    <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h3 className="font-display font-semibold text-char-900 dark:text-cream">{category}</h3>
-        {sold.length > 0 && (
-          <p className="shrink-0 text-xs text-char-700/50 dark:text-cream/50">
-            {soldQty}× · {formatPeso(soldRevenue)}
-          </p>
-        )}
-      </div>
-
-      {sold.length === 0 ? (
-        <p className="text-sm text-char-700/40 dark:text-cream/40">No sales in this window</p>
-      ) : (
-        <>
-          <ol className="space-y-1">
-            {visible.map((item, i) => (
-              <SoldRow key={item.productId} rank={i + 1} item={item} pct={topQty ? (item.qty / topQty) * 100 : 0} />
-            ))}
-          </ol>
-          {rest.length > 0 && (
-            <details className="mt-1">
-              <summary className="cursor-pointer list-none text-xs font-medium text-ember-600 dark:text-ember-400 hover:underline">
-                +{rest.length} more sold
-              </summary>
-              <ol className="mt-1 space-y-1">
-                {rest.map((item, i) => (
-                  <SoldRow
-                    key={item.productId}
-                    rank={CATEGORY_CARD_VISIBLE + i + 1}
-                    item={item}
-                    pct={topQty ? (item.qty / topQty) * 100 : 0}
-                  />
-                ))}
-              </ol>
-            </details>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function SoldRow({ rank, item, pct }: { rank: number; item: CategoryItemStat; pct: number }) {
-  return (
-    <li className="relative overflow-hidden rounded">
-      <div
-        className="absolute inset-y-0 left-0 bg-ember-500/10 dark:bg-ember-400/15"
-        style={{ width: `${Math.max(pct, 4)}%` }}
-        aria-hidden="true"
+      <TrendingChart
+        chartData={chartData}
+        topProductNames={topProductNames}
+        granularity={granularity}
+        onGranularityChange={setGranularity}
+        loading={loadingTrend}
       />
-      <div className="relative flex items-center justify-between gap-3 px-2 py-1.5">
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="w-4 shrink-0 text-xs font-medium text-char-700/40 dark:text-cream/40">{rank}</span>
-          <span className="truncate text-sm text-char-800 dark:text-cream/90" title={item.name}>
-            {item.name}
-          </span>
-        </span>
-        <span className="shrink-0 text-sm font-medium text-char-900 dark:text-cream">
-          {item.qty}× · {formatPeso(item.revenue)}
-        </span>
-      </div>
-    </li>
+    </div>
   );
 }

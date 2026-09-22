@@ -7,23 +7,84 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   CartesianGrid,
 } from "recharts";
+import {
+  FluentProvider,
+  Card,
+  CardHeader,
+  Title3,
+  tokens,
+  DataGrid,
+  DataGridHeader,
+  DataGridHeaderCell,
+  DataGridBody,
+  DataGridRow,
+  DataGridCell,
+  TableCellLayout,
+  createTableColumn,
+  type TableColumnDefinition,
+} from "@fluentui/react-components";
+import { DataBarVerticalRegular, FoodRegular } from "@fluentui/react-icons";
 import { createClient } from "@/lib/supabase/client";
 import { formatPeso } from "@/lib/utils";
 import { useIsDarkMode } from "@/lib/use-dark-mode";
 import type { Order, OrderItem } from "@/lib/types";
 
+import { brandLightTheme, brandDarkTheme } from "@/components/fluent/theme";
+import { useSharedStyles } from "@/components/fluent/styles";
+import { PageHeader } from "@/components/fluent/PageHeader";
+import { SegmentedControl } from "@/components/fluent/SegmentedControl";
+import { StatCard } from "@/components/fluent/StatCard";
+import { EmptyState, LoadingState } from "@/components/fluent/EmptyState";
+
 const RANGE_OPTIONS = [
-  { label: "Today", days: 1 },
-  { label: "Last 7 days", days: 7 },
-  { label: "Last 30 days", days: 30 },
+  { label: "Today", value: 1 },
+  { label: "Last 7 days", value: 7 },
+  { label: "Last 30 days", value: 30 },
+];
+
+interface PopularItem {
+  name: string;
+  qty: number;
+  revenue: number;
+}
+
+const popularColumns: TableColumnDefinition<PopularItem>[] = [
+  createTableColumn<PopularItem>({
+    columnId: "name",
+    compare: (a, b) => a.name.localeCompare(b.name),
+    renderHeaderCell: () => "Item",
+    renderCell: (item) => <TableCellLayout truncate>{item.name}</TableCellLayout>,
+  }),
+  createTableColumn<PopularItem>({
+    columnId: "qty",
+    compare: (a, b) => a.qty - b.qty,
+    renderHeaderCell: () => "Qty sold",
+    renderCell: (item) => `${item.qty}×`,
+  }),
+  createTableColumn<PopularItem>({
+    columnId: "revenue",
+    compare: (a, b) => a.revenue - b.revenue,
+    renderHeaderCell: () => "Revenue",
+    renderCell: (item) => formatPeso(item.revenue),
+  }),
 ];
 
 export default function DashboardPage() {
+  const isDark = useIsDarkMode();
+  return (
+    <FluentProvider theme={isDark ? brandDarkTheme : brandLightTheme} style={{ backgroundColor: "transparent" }}>
+      <DashboardContent />
+    </FluentProvider>
+  );
+}
+
+function DashboardContent() {
   const supabase = createClient();
   const isDark = useIsDarkMode();
+  const styles = useSharedStyles();
   const gridColor = isDark ? "#463830" : "#e5decf";
   const axisColor = isDark ? "#c9bfae" : "#7a6a58";
   const [rangeDays, setRangeDays] = useState(7);
@@ -80,8 +141,8 @@ export default function DashboardPage() {
     return Array.from(map.entries()).map(([day, revenue]) => ({ day, revenue }));
   }, [orders]);
 
-  const popularItems = useMemo(() => {
-    const map = new Map<string, { name: string; qty: number; revenue: number }>();
+  const popularItems: PopularItem[] = useMemo(() => {
+    const map = new Map<string, PopularItem>();
     for (const it of items) {
       const key = it.product_name;
       const existing = map.get(key) ?? { name: key, qty: 0, revenue: 0 };
@@ -95,39 +156,21 @@ export default function DashboardPage() {
   }, [items]);
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
-            Sales Reports
-          </h1>
-          <p className="text-sm text-char-700/70 dark:text-cream/70">
-            Revenue and menu performance for Fedelicious Wings.
-          </p>
-        </div>
-        <div className="flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 p-1">
-          {RANGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.days}
-              onClick={() => setRangeDays(opt.days)}
-              className={`rounded px-3 py-1.5 text-sm font-medium ${
-                rangeDays === opt.days
-                  ? "bg-ember-500 text-white"
-                  : "text-char-700/70 dark:text-cream/70 hover:bg-char-800/5 dark:hover:bg-cream/5"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacingVerticalXXL }}>
+      <PageHeader
+        title="Sales Reports"
+        subtitle="Revenue and menu performance for Fedelicious Wings."
+        action={
+          <SegmentedControl ariaLabel="Date range" options={RANGE_OPTIONS} value={rangeDays} onChange={setRangeDays} />
+        }
+      />
 
       {loading ? (
-        <p className="text-char-700/60 dark:text-cream/60">Loading report…</p>
+        <LoadingState label="Loading report…" />
       ) : (
         <>
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label="Total revenue" value={formatPeso(totalRevenue)} />
+          <div className={styles.statGrid}>
+            <StatCard label="Total revenue" value={formatPeso(totalRevenue)} valueColor={tokens.colorBrandForeground1} />
             <StatCard label="Orders" value={String(orders.length)} />
             <StatCard
               label="Average order value"
@@ -135,75 +178,63 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="mb-6 rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
-            <h2 className="mb-4 font-display font-semibold text-char-900 dark:text-cream">
-              Revenue by day
-            </h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueByDay}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                  <XAxis dataKey="day" fontSize={12} stroke={axisColor} />
-                  <YAxis fontSize={12} stroke={axisColor} />
-                  <Tooltip
-                    formatter={(v: number) => formatPeso(v)}
-                    contentStyle={{
-                      background: isDark ? "#241D18" : "#fff",
-                      border: `1px solid ${gridColor}`,
-                      color: isDark ? "#FBF4EA" : "#241D18",
-                    }}
-                  />
-                  <Bar dataKey="revenue" fill="#F0662B" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card size="large" className={styles.card}>
+            <CardHeader
+              image={<DataBarVerticalRegular fontSize={20} style={{ color: tokens.colorBrandForeground1 }} />}
+              header={<Title3>Revenue by day</Title3>}
+            />
+            {revenueByDay.length === 0 ? (
+              <EmptyState icon={DataBarVerticalRegular} message="No revenue in this period yet." />
+            ) : (
+              <div style={{ height: 260, paddingTop: tokens.spacingVerticalM }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueByDay}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                    <XAxis dataKey="day" fontSize={12} stroke={axisColor} />
+                    <YAxis fontSize={12} stroke={axisColor} />
+                    <RechartsTooltip
+                      formatter={(v: number) => formatPeso(v)}
+                      contentStyle={{
+                        background: isDark ? "#241D18" : "#fff",
+                        border: `1px solid ${gridColor}`,
+                        color: isDark ? "#FBF4EA" : "#241D18",
+                      }}
+                    />
+                    <Bar dataKey="revenue" fill="#F0662B" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
 
-          <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
-            <h2 className="mb-4 font-display font-semibold text-char-900 dark:text-cream">
-              Popular items
-            </h2>
-            <table className="w-full text-left text-sm">
-              <thead className="text-char-700/60 dark:text-cream/60">
-                <tr>
-                  <th className="pb-2 font-medium">Item</th>
-                  <th className="pb-2 font-medium">Qty sold</th>
-                  <th className="pb-2 font-medium">Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {popularItems.map((it) => (
-                  <tr key={it.name} className="border-t border-char-700/10 dark:border-cream/10">
-                    <td className="py-2 text-char-900 dark:text-cream">{it.name}</td>
-                    <td className="py-2">{it.qty}</td>
-                    <td className="py-2">{formatPeso(it.revenue)}</td>
-                  </tr>
-                ))}
-                {popularItems.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="py-4 text-center text-char-700/50 dark:text-cream/50">
-                      No sales in this period yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Card size="large" className={styles.card}>
+            <CardHeader
+              image={<FoodRegular fontSize={20} style={{ color: tokens.colorBrandForeground1 }} />}
+              header={<Title3>Popular items</Title3>}
+            />
+            {popularItems.length === 0 ? (
+              <EmptyState icon={FoodRegular} message="No sales in this period yet." />
+            ) : (
+              <div style={{ paddingTop: tokens.spacingVerticalM }}>
+                <DataGrid items={popularItems} columns={popularColumns} sortable getRowId={(item) => item.name} size="small">
+                  <DataGridHeader>
+                    <DataGridRow>
+                      {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
+                    </DataGridRow>
+                  </DataGridHeader>
+                  <DataGridBody<PopularItem>>
+                    {({ item, rowId }) => (
+                      <DataGridRow<PopularItem> key={rowId}>
+                        {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
+                      </DataGridRow>
+                    )}
+                  </DataGridBody>
+                </DataGrid>
+              </div>
+            )}
+          </Card>
         </>
       )}
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
-        {label}
-      </p>
-      <p className="mt-1 font-display text-2xl font-semibold text-char-900 dark:text-cream">
-        {value}
-      </p>
     </div>
   );
 }
