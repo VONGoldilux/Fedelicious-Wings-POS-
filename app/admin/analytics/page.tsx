@@ -264,12 +264,11 @@ export default function AnalyticsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [granularity]);
 
-  // ---- Group top/bottom-5 by category -------------------------------------
-  // Bottom 5 is drawn from whatever's left AFTER Top 5 is removed, so the
-  // two lists never show the same items twice — which used to happen for
-  // any category with 5 or fewer products, or where most items tied at 0
-  // sales (stable-sort returns identical order for both directions on a
-  // tie, so "highest first" and "lowest first" looked like the same list).
+  // ---- Group sold items by category ----------------------------------------
+  // Only items that actually sold show up in a category card, ranked by qty.
+  // Zero-sale items are dropped from here entirely — they're listed once,
+  // across all categories, in the "No sales" section below instead of being
+  // repeated as noise in every card.
   const byCategory = useMemo(() => {
     const map = new Map<string, CategoryItemStat[]>();
     for (const s of categoryStats) {
@@ -277,17 +276,28 @@ export default function AnalyticsPage() {
       list.push(s);
       map.set(s.category, list);
     }
-    return Array.from(map.entries()).map(([category, items]) => {
-      const byBest = [...items].sort(
-        (a, b) => b.qty - a.qty || a.name.localeCompare(b.name)
-      );
-      const top = byBest.slice(0, 5);
-      const topIds = new Set(top.map((t) => t.productId));
-      const rest = byBest.filter((s) => !topIds.has(s.productId));
-      const bottom = [...rest].reverse().slice(0, 5);
-      return { category, top, bottom, hasDistinctBottom: rest.length > 0 };
-    });
+    return Array.from(map.entries())
+      .map(([category, items]) => {
+        const sold = items
+          .filter((i) => i.qty > 0)
+          .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue || a.name.localeCompare(b.name));
+        const soldQty = sold.reduce((sum, i) => sum + i.qty, 0);
+        const soldRevenue = sold.reduce((sum, i) => sum + i.revenue, 0);
+        return { category, sold, soldQty, soldRevenue };
+      })
+      .sort((a, b) => b.soldRevenue - a.soldRevenue || a.category.localeCompare(b.category));
   }, [categoryStats]);
+
+  // ---- Dead stock: every zero-sale item, across all categories ------------
+  const deadStock = useMemo(
+    () =>
+      categoryStats
+        .filter((s) => s.qty === 0)
+        .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name)),
+    [categoryStats]
+  );
+
+  const rangeLabel = RANGE_OPTIONS.find((o) => o.days === rangeDays)?.label ?? "";
 
   // ---- Trending chart: top 5 items overall in this window, bucketed ------
   const { chartData, topProductNames } = useMemo(() => {
@@ -406,11 +416,11 @@ export default function AnalyticsPage() {
         )}
       </div>
 
-      {/* ---------- Top/Bottom sellers per category ---------- */}
+      {/* ---------- Best sellers per category ---------- */}
       <div className="mb-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display font-semibold text-char-900 dark:text-cream">
-            Best &amp; worst sellers by category
+            Best sellers by category
           </h2>
           <div className="flex gap-1 rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 p-1">
             {RANGE_OPTIONS.map((opt) => (
@@ -435,27 +445,39 @@ export default function AnalyticsPage() {
           <p className="text-char-700/60 dark:text-cream/60">No menu items yet.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {byCategory.map(({ category, top, bottom, hasDistinctBottom }) => (
-              <div
-                key={category}
-                className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm"
-              >
-                <h3 className="mb-3 font-display font-semibold text-char-900 dark:text-cream">
-                  {category}
-                </h3>
-                {hasDistinctBottom ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <RankedList title="Top 5" rows={top} tone="text-green-700 dark:text-green-400" />
-                    <RankedList title="Bottom 5" rows={bottom} tone="text-ember-600 dark:text-ember-400" />
-                  </div>
-                ) : (
-                  <RankedList title="All items" rows={top} tone="text-char-800 dark:text-cream/90" />
-                )}
-              </div>
+            {byCategory.map((c) => (
+              <CategoryCard key={c.category} {...c} />
             ))}
           </div>
         )}
       </div>
+
+      {/* ---------- Dead stock: zero sales across all categories ---------- */}
+      {!loadingStats && deadStock.length > 0 && (
+        <div className="mb-8 rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-display font-semibold text-char-900 dark:text-cream">
+              No sales — {rangeLabel.toLowerCase()}
+            </h2>
+            <p className="text-xs text-char-700/50 dark:text-cream/50">
+              {deadStock.length} item{deadStock.length === 1 ? "" : "s"} · candidates for trimming from the menu
+            </p>
+          </div>
+          <div className="grid max-h-80 grid-cols-1 gap-x-6 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
+            {deadStock.map((item) => (
+              <div
+                key={item.productId}
+                className="flex items-center justify-between gap-2 border-b border-char-700/5 dark:border-cream/5 py-1.5 text-sm last:border-0"
+              >
+                <span className="truncate text-char-800 dark:text-cream/80" title={item.name}>
+                  {item.name}
+                </span>
+                <span className="shrink-0 text-xs text-char-700/40 dark:text-cream/40">{item.category}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ---------- Trending graph ---------- */}
       <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
@@ -566,36 +588,85 @@ function SharePie({
   );
 }
 
-function RankedList({
-  title,
-  rows,
-  tone,
+const CATEGORY_CARD_VISIBLE = 6;
+
+function CategoryCard({
+  category,
+  sold,
+  soldQty,
+  soldRevenue,
 }: {
-  title: string;
-  rows: CategoryItemStat[];
-  tone: string;
+  category: string;
+  sold: CategoryItemStat[];
+  soldQty: number;
+  soldRevenue: number;
 }) {
+  const visible = sold.slice(0, CATEGORY_CARD_VISIBLE);
+  const rest = sold.slice(CATEGORY_CARD_VISIBLE);
+  const topQty = sold[0]?.qty ?? 0;
+
   return (
-    <div>
-      <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
-        {title}
-      </p>
-      {rows.length === 0 ? (
-        <p className="text-xs text-char-700/40 dark:text-cream/40">—</p>
+    <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-5 shadow-sm">
+      <div className="mb-3 flex items-baseline justify-between gap-2">
+        <h3 className="font-display font-semibold text-char-900 dark:text-cream">{category}</h3>
+        {sold.length > 0 && (
+          <p className="shrink-0 text-xs text-char-700/50 dark:text-cream/50">
+            {soldQty}× · {formatPeso(soldRevenue)}
+          </p>
+        )}
+      </div>
+
+      {sold.length === 0 ? (
+        <p className="text-sm text-char-700/40 dark:text-cream/40">No sales in this window</p>
       ) : (
-        <ol className="space-y-1 text-sm">
-          {rows.map((r) => (
-            <li key={r.productId} className="flex justify-between gap-2">
-              <span className="line-clamp-1 text-char-800 dark:text-cream/90" title={r.name}>
-                {r.name}
-              </span>
-              <span className={`shrink-0 font-medium ${tone}`}>
-                {r.qty}× · {formatPeso(r.revenue)}
-              </span>
-            </li>
-          ))}
-        </ol>
+        <>
+          <ol className="space-y-1">
+            {visible.map((item, i) => (
+              <SoldRow key={item.productId} rank={i + 1} item={item} pct={topQty ? (item.qty / topQty) * 100 : 0} />
+            ))}
+          </ol>
+          {rest.length > 0 && (
+            <details className="mt-1">
+              <summary className="cursor-pointer list-none text-xs font-medium text-ember-600 dark:text-ember-400 hover:underline">
+                +{rest.length} more sold
+              </summary>
+              <ol className="mt-1 space-y-1">
+                {rest.map((item, i) => (
+                  <SoldRow
+                    key={item.productId}
+                    rank={CATEGORY_CARD_VISIBLE + i + 1}
+                    item={item}
+                    pct={topQty ? (item.qty / topQty) * 100 : 0}
+                  />
+                ))}
+              </ol>
+            </details>
+          )}
+        </>
       )}
     </div>
+  );
+}
+
+function SoldRow({ rank, item, pct }: { rank: number; item: CategoryItemStat; pct: number }) {
+  return (
+    <li className="relative overflow-hidden rounded">
+      <div
+        className="absolute inset-y-0 left-0 bg-ember-500/10 dark:bg-ember-400/15"
+        style={{ width: `${Math.max(pct, 4)}%` }}
+        aria-hidden="true"
+      />
+      <div className="relative flex items-center justify-between gap-3 px-2 py-1.5">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="w-4 shrink-0 text-xs font-medium text-char-700/40 dark:text-cream/40">{rank}</span>
+          <span className="truncate text-sm text-char-800 dark:text-cream/90" title={item.name}>
+            {item.name}
+          </span>
+        </span>
+        <span className="shrink-0 text-sm font-medium text-char-900 dark:text-cream">
+          {item.qty}× · {formatPeso(item.revenue)}
+        </span>
+      </div>
+    </li>
   );
 }
