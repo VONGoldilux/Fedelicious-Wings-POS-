@@ -70,6 +70,7 @@ export interface Order {
   total: number;
   payment_method: PaymentMethod | null;
   payment_reference: string | null;
+  payment_provider: string | null;
   amount_tendered: number | null;
   change_due: number | null;
   notes: string | null;

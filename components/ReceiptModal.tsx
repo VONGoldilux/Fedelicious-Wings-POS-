@@ -111,6 +111,12 @@ export default function ReceiptModal({
               <span>{paymentMethodLabel(order.payment_method)}</span>
             </div>
           )}
+          {order.payment_provider && (
+            <div className="flex justify-between text-char-700/70">
+              <span>Via</span>
+              <span>{order.payment_provider}</span>
+            </div>
+          )}
           {order.payment_reference && (
             <div className="flex justify-between text-char-700/70">
               <span>Reference #</span>

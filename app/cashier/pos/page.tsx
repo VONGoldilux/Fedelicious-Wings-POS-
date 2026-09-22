@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { formatPeso } from "@/lib/utils";
 import ReceiptModal from "@/components/ReceiptModal";
+import PaymentProviderPicker from "@/components/PaymentProviderPicker";
 import { WEEKDAYS } from "@/lib/types";
 import type {
   CartLine,
@@ -101,6 +102,7 @@ export default function CashierPOSPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [tendered, setTendered] = useState("");
   const [paymentReference, setPaymentReference] = useState("");
+  const [paymentProvider, setPaymentProvider] = useState("");
   const [readyAlerts, setReadyAlerts] = useState<Order[]>([]);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -397,6 +399,7 @@ export default function CashierPOSPage() {
     if (cart.length === 0 || !profile) return;
     if (paymentMethod === "cash" && Number(tendered || 0) < total) return;
     if (paymentMethod === "gcash" && !paymentReference.trim()) return;
+    if (paymentMethod === "gcash" && !paymentProvider.trim()) return;
 
     setPaying(true);
     try {
@@ -410,6 +413,8 @@ export default function CashierPOSPage() {
           payment_method: paymentMethod,
           payment_reference:
             paymentMethod === "gcash" ? paymentReference.trim() : null,
+          payment_provider:
+            paymentMethod === "gcash" ? paymentProvider.trim() : null,
           amount_tendered: paymentMethod === "cash" ? Number(tendered) : total,
           change_due: paymentMethod === "cash" ? change : 0,
           cashier_id: profile.id,
@@ -468,6 +473,8 @@ export default function CashierPOSPage() {
         payment_method: paymentMethod,
         payment_reference:
           paymentMethod === "gcash" ? paymentReference.trim() : null,
+        payment_provider:
+          paymentMethod === "gcash" ? paymentProvider.trim() : null,
         amount_tendered: paymentMethod === "cash" ? Number(tendered) : total,
         change_due: paymentMethod === "cash" ? change : 0,
         notes: null,
@@ -491,6 +498,7 @@ export default function CashierPOSPage() {
       setCart([]);
       setTendered("");
       setPaymentReference("");
+      setPaymentProvider("");
       setSelectedPromoId(null);
       setOrderType("takeout");
       setTableNumber("");
@@ -1108,17 +1116,23 @@ export default function CashierPOSPage() {
         )}
 
         {paymentMethod === "gcash" && (
-          <>
-            <label className="mb-1 block text-xs font-medium text-char-700/70">
-              Reference number
-            </label>
-            <input
-              value={paymentReference}
-              onChange={(e) => setPaymentReference(e.target.value)}
-              className="mb-3 w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
-              placeholder="Enter after payment is sent & received"
+          <div className="mb-3 space-y-2">
+            <PaymentProviderPicker
+              value={paymentProvider}
+              onChange={setPaymentProvider}
             />
-          </>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-char-700/70">
+                Reference number
+              </label>
+              <input
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                className="w-full rounded-md border border-char-700/20 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+                placeholder="Enter after payment is sent & received"
+              />
+            </div>
+          </div>
         )}
 
         <button
@@ -1127,7 +1141,8 @@ export default function CashierPOSPage() {
             paying ||
             cart.length === 0 ||
             (paymentMethod === "cash" && Number(tendered || 0) < total) ||
-            (paymentMethod === "gcash" && !paymentReference.trim())
+            (paymentMethod === "gcash" &&
+              (!paymentReference.trim() || !paymentProvider.trim()))
           }
           className="w-full rounded-md bg-ember-500 py-2.5 font-semibold text-white hover:bg-ember-600 disabled:opacity-50"
         >

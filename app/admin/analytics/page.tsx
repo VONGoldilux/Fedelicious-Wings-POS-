@@ -5,6 +5,9 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -63,6 +66,16 @@ const ORDER_TYPE_LABEL: Record<string, string> = {
 };
 const ORDER_TYPES = ["dine_in", "takeout", "delivery"] as const;
 const PAYMENT_METHODS = ["cash", "gcash"] as const;
+
+const ORDER_TYPE_COLORS: Record<string, string> = {
+  dine_in: "#F0662B",
+  takeout: "#D49B22",
+  delivery: "#463830",
+};
+const PAYMENT_COLORS: Record<string, string> = {
+  cash: "#F0662B",
+  gcash: "#D49B22",
+};
 
 function bucketKeyFor(date: Date, granularity: Granularity): string {
   if (granularity === "day") {
@@ -314,24 +327,33 @@ export default function AnalyticsPage() {
         {loadingOrderTypes ? (
           <p className="text-char-700/60">Loading…</p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {ORDER_TYPES.map((type) => {
-              const stat = orderTypeStats[type] ?? { count: 0, revenue: 0 };
-              return (
-                <div
-                  key={type}
-                  className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
-                >
-                  <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
-                    {ORDER_TYPE_LABEL[type]}
-                  </p>
-                  <p className="mt-1 font-display text-2xl font-semibold text-char-900">
-                    {stat.count} orders
-                  </p>
-                  <p className="text-sm text-ember-600">{formatPeso(stat.revenue)}</p>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {ORDER_TYPES.map((type) => {
+                const stat = orderTypeStats[type] ?? { count: 0, revenue: 0 };
+                return (
+                  <div
+                    key={type}
+                    className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
+                  >
+                    <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
+                      {ORDER_TYPE_LABEL[type]}
+                    </p>
+                    <p className="mt-1 font-display text-2xl font-semibold text-char-900">
+                      {stat.count} orders
+                    </p>
+                    <p className="text-sm text-ember-600">{formatPeso(stat.revenue)}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <SharePie
+              data={ORDER_TYPES.map((type) => ({
+                name: ORDER_TYPE_LABEL[type],
+                value: orderTypeStats[type]?.revenue ?? 0,
+                color: ORDER_TYPE_COLORS[type],
+              }))}
+            />
           </div>
         )}
       </div>
@@ -344,24 +366,33 @@ export default function AnalyticsPage() {
         {loadingOrderTypes ? (
           <p className="text-char-700/60">Loading…</p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:max-w-lg">
-            {PAYMENT_METHODS.map((method) => {
-              const stat = paymentStats[method] ?? { count: 0, revenue: 0 };
-              return (
-                <div
-                  key={method}
-                  className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
-                >
-                  <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
-                    {paymentMethodLabel(method)}
-                  </p>
-                  <p className="mt-1 font-display text-2xl font-semibold text-char-900">
-                    {stat.count} orders
-                  </p>
-                  <p className="text-sm text-ember-600">{formatPeso(stat.revenue)}</p>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:max-w-lg">
+              {PAYMENT_METHODS.map((method) => {
+                const stat = paymentStats[method] ?? { count: 0, revenue: 0 };
+                return (
+                  <div
+                    key={method}
+                    className="rounded-card border border-char-700/10 bg-white p-5 shadow-sm"
+                  >
+                    <p className="text-xs font-medium uppercase tracking-wide text-char-700/50">
+                      {paymentMethodLabel(method)}
+                    </p>
+                    <p className="mt-1 font-display text-2xl font-semibold text-char-900">
+                      {stat.count} orders
+                    </p>
+                    <p className="text-sm text-ember-600">{formatPeso(stat.revenue)}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <SharePie
+              data={PAYMENT_METHODS.map((method) => ({
+                name: paymentMethodLabel(method),
+                value: paymentStats[method]?.revenue ?? 0,
+                color: PAYMENT_COLORS[method],
+              }))}
+            />
           </div>
         )}
       </div>
@@ -468,6 +499,49 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function SharePie({
+  data,
+}: {
+  data: { name: string; value: number; color: string }[];
+}) {
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center rounded-card border border-char-700/10 bg-white p-5 text-sm text-char-700/50 shadow-sm">
+        No revenue yet
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-card border border-char-700/10 bg-white p-3 shadow-sm">
+      <div className="h-56">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              innerRadius="55%"
+              outerRadius="80%"
+              paddingAngle={2}
+            >
+              {data.map((d) => (
+                <Cell key={d.name} fill={d.color} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(v: number) => formatPeso(v)} />
+            <Legend
+              verticalAlign="bottom"
+              height={36}
+              wrapperStyle={{ fontSize: 12 }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

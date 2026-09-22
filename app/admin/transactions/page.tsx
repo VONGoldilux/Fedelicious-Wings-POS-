@@ -209,6 +209,7 @@ export default function AdminTransactionsPage() {
                   </td>
                   <td className="px-4 py-3 text-char-700/70">
                     {paymentMethodLabel(o.payment_method)}
+                    {o.payment_provider && ` · ${o.payment_provider}`}
                   </td>
                   <td className="px-4 py-3">
                     <span

@@ -81,6 +81,8 @@ create table public.orders (
   total numeric(10,2) not null default 0,
   payment_method public.payment_method,
   payment_reference text,        -- GCash/e-payment transaction reference number
+  payment_provider text,         -- which bank/e-wallet, e.g. "GCash", "BDO", or a
+                                  -- free-typed value when "Other" was picked
   amount_tendered numeric(10,2),
   change_due numeric(10,2),
   notes text,
