@@ -1,20 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FluentProvider, tokens } from "@fluentui/react-components";
 import { createClient } from "@/lib/supabase/client";
 import { formatPeso } from "@/lib/utils";
-import { useIsDarkMode } from "@/lib/use-dark-mode";
 import ReceiptModal from "@/components/ReceiptModal";
 import CancelOrderModal from "@/components/CancelOrderModal";
 import SetDeliveryRiderModal from "@/components/SetDeliveryRiderModal";
 import type { Order, OrderType, PaymentMethod } from "@/lib/types";
 
-import { brandLightTheme, brandDarkTheme } from "@/components/fluent/theme";
-import { useSharedStyles } from "@/components/fluent/styles";
-import { PageHeader } from "@/components/fluent/PageHeader";
-import { SegmentedControl } from "@/components/fluent/SegmentedControl";
-import { StatCard } from "@/components/fluent/StatCard";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { StatCard } from "@/components/ui/StatCard";
 import { TransactionsTable } from "./TransactionsTable";
 
 export type OrderWithCashier = Order & { profiles: { full_name: string } | null };
@@ -29,17 +25,7 @@ export type ChannelFilter = "all" | OrderType;
 export type PaymentFilter = "all" | PaymentMethod;
 
 export default function AdminTransactionsPage() {
-  const isDark = useIsDarkMode();
-  return (
-    <FluentProvider theme={isDark ? brandDarkTheme : brandLightTheme} style={{ backgroundColor: "transparent" }}>
-      <TransactionsContent />
-    </FluentProvider>
-  );
-}
-
-function TransactionsContent() {
   const supabase = createClient();
-  const styles = useSharedStyles();
 
   const [rangeDays, setRangeDays] = useState(1);
   const [orders, setOrders] = useState<OrderWithCashier[]>([]);
@@ -120,18 +106,16 @@ function TransactionsContent() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacingVerticalXXL }}>
+    <div className="flex flex-col gap-8">
       <PageHeader
         title="Transactions"
         subtitle="Every order across all cashiers, most recent first."
-        action={
-          <SegmentedControl ariaLabel="Date range" options={RANGE_OPTIONS} value={rangeDays} onChange={setRangeDays} />
-        }
+        action={<SegmentedControl ariaLabel="Date range" options={RANGE_OPTIONS} value={rangeDays} onChange={setRangeDays} />}
       />
 
-      <div className={styles.statGrid}>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Transactions" value={String(summary.count)} />
-        <StatCard label="Revenue" value={formatPeso(summary.revenue)} valueColor={tokens.colorBrandForeground1} />
+        <StatCard label="Revenue" value={formatPeso(summary.revenue)} valueClassName="text-ember-600 dark:text-ember-400" />
         <StatCard label="Cash" value={formatPeso(summary.cash)} />
         <StatCard label="E-Payment" value={formatPeso(summary.epayment)} />
       </div>

@@ -1,9 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  ChefHat,
+  Clock,
+  AlertTriangle,
+  ChevronRight,
+  CheckCircle2,
+  Truck,
+  UtensilsCrossed,
+  ShoppingBag,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { formatTime, minutesSince } from "@/lib/utils";
+import { formatTime, minutesSince, cx } from "@/lib/utils";
 import type { Order } from "@/lib/types";
+import { Card } from "@/components/ui/Card";
+import { Badge, type BadgeColor } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { StatCard } from "@/components/ui/StatCard";
+import { EmptyState, LoadingState } from "@/components/ui/EmptyState";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 
 const RECENT_LIMIT = 8;
 
@@ -13,6 +29,12 @@ const ORDER_TYPE_LABEL: Record<string, string> = {
   dine_in: "Dine-in",
   takeout: "Takeout",
   delivery: "Delivery",
+};
+
+const ORDER_TYPE_ICON: Record<string, typeof UtensilsCrossed> = {
+  dine_in: UtensilsCrossed,
+  takeout: ShoppingBag,
+  delivery: Truck,
 };
 
 export default function KitchenQueuePage() {
@@ -119,6 +141,25 @@ export default function KitchenQueuePage() {
   const preparing = orders.filter((o) => o.status === "preparing");
   const ready = orders.filter((o) => o.status === "ready");
 
+  const recentColumns: DataTableColumn<Order>[] = [
+    { id: "order", header: "Order", cell: (o) => <span className="font-semibold text-char-900 dark:text-cream">#{o.order_number}</span> },
+    {
+      id: "type",
+      header: "Type",
+      cell: (o) =>
+        `${ORDER_TYPE_LABEL[o.order_type] ?? o.order_type}${
+          o.order_type === "dine_in" && o.table_number ? ` · Table ${o.table_number}` : ""
+        }`,
+    },
+    { id: "ready_at", header: "Ready at", cell: (o) => (o.ready_at ? formatTime(o.ready_at) : "—") },
+    {
+      id: "items",
+      header: "Items",
+      cell: (o) => `${o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items`,
+    },
+    { id: "status", header: "Status", cell: (o) => <Badge color="success" className="capitalize">{o.status}</Badge> },
+  ];
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -130,49 +171,48 @@ export default function KitchenQueuePage() {
             Orders update live — no refresh needed.
           </p>
         </div>
-        <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 px-4 py-2.5 shadow-sm">
-          <p className="text-xs text-char-700/50 dark:text-cream/50">Handled today</p>
-          <p className="font-display text-xl font-semibold text-green-600 dark:text-green-400">
-            {handledToday}
-          </p>
+        <div className="w-40">
+          <StatCard label="Handled today" value={String(handledToday)} valueClassName="text-green-600 dark:text-green-400" />
         </div>
       </div>
 
       {loading ? (
-        <p className="text-char-700/60 dark:text-cream/60">Loading queue…</p>
+        <LoadingState label="Loading queue…" />
       ) : (
         <>
           {orders.length === 0 && (
-            <p className="mb-4 text-char-700/60 dark:text-cream/60">No active orders. All caught up! 🍗</p>
+            <EmptyState icon={<ChefHat size={28} />} message="No active orders. All caught up!" />
           )}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <Column title="Queued" count={queued.length} accent="border-char-700/30 dark:border-cream/20">
-            {queued.map((o) => (
-              <OrderCard
-                key={o.id}
-                order={o}
-                primaryLabel="Start preparing"
-                onPrimary={() => setStatus(o.id, "preparing")}
-              />
-            ))}
-          </Column>
+            <Column title="Queued" count={queued.length} color="info">
+              {queued.map((o) => (
+                <OrderCard
+                  key={o.id}
+                  order={o}
+                  primaryLabel="Start preparing"
+                  primaryIcon={<ChevronRight size={17} />}
+                  onPrimary={() => setStatus(o.id, "preparing")}
+                />
+              ))}
+            </Column>
 
-          <Column title="Preparing" count={preparing.length} accent="border-mustard-500">
-            {preparing.map((o) => (
-              <OrderCard
-                key={o.id}
-                order={o}
-                primaryLabel="Mark as Ready"
-                onPrimary={() => setStatus(o.id, "ready")}
-              />
-            ))}
-          </Column>
+            <Column title="Preparing" count={preparing.length} color="warning">
+              {preparing.map((o) => (
+                <OrderCard
+                  key={o.id}
+                  order={o}
+                  primaryLabel="Mark as Ready"
+                  primaryIcon={<CheckCircle2 size={17} />}
+                  onPrimary={() => setStatus(o.id, "ready")}
+                />
+              ))}
+            </Column>
 
-          <Column title="Ready for pickup" count={ready.length} accent="border-green-500">
-            {ready.map((o) => (
-              <OrderCard key={o.id} order={o} readOnly />
-            ))}
-          </Column>
+            <Column title="Ready for pickup" count={ready.length} color="success">
+              {ready.map((o) => (
+                <OrderCard key={o.id} order={o} readOnly />
+              ))}
+            </Column>
           </div>
         </>
       )}
@@ -181,70 +221,47 @@ export default function KitchenQueuePage() {
         <h2 className="mb-3 font-display font-semibold text-char-900 dark:text-cream">
           Recently handled
         </h2>
-        {recentHandled.length === 0 ? (
-          <p className="text-sm text-char-700/60 dark:text-cream/60">
-            No orders handled yet — completed orders will show up here.
-          </p>
-        ) : (
-          <div className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-char-800/5 dark:bg-cream/5 text-xs uppercase text-char-700/50 dark:text-cream/50">
-                <tr>
-                  <th className="px-4 py-2.5">Order</th>
-                  <th className="px-4 py-2.5">Type</th>
-                  <th className="px-4 py-2.5">Ready at</th>
-                  <th className="px-4 py-2.5">Items</th>
-                  <th className="px-4 py-2.5">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-char-700/10 dark:divide-cream/10">
-                {recentHandled.map((o) => (
-                  <tr key={o.id}>
-                    <td className="px-4 py-2.5 font-medium text-char-900 dark:text-cream">
-                      #{o.order_number}
-                    </td>
-                    <td className="px-4 py-2.5 text-char-700/70 dark:text-cream/70">
-                      {ORDER_TYPE_LABEL[o.order_type] ?? o.order_type}
-                      {o.order_type === "dine_in" && o.table_number
-                        ? ` · Table ${o.table_number}`
-                        : ""}
-                    </td>
-                    <td className="px-4 py-2.5 text-char-700/70 dark:text-cream/70">
-                      {o.ready_at ? formatTime(o.ready_at) : "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-char-700/70 dark:text-cream/70">
-                      {o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items
-                    </td>
-                    <td className="px-4 py-2.5 capitalize text-char-700/70 dark:text-cream/70">
-                      {o.status}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Card padding="none">
+          <DataTable
+            columns={recentColumns}
+            rows={recentHandled}
+            getRowId={(o) => o.id}
+            emptyMessage={
+              <p className="px-4 py-8 text-center text-sm text-char-700/60 dark:text-cream/60">
+                No orders handled yet — completed orders will show up here.
+              </p>
+            }
+          />
+        </Card>
       </div>
     </div>
   );
 }
 
+const COLUMN_ACCENT: Record<string, { border: string; badge: BadgeColor }> = {
+  info: { border: "border-char-700/30 dark:border-cream/20", badge: "info" },
+  warning: { border: "border-mustard-500", badge: "warning" },
+  success: { border: "border-green-500", badge: "success" },
+};
+
 function Column({
   title,
   count,
-  accent,
+  color,
   children,
 }: {
   title: string;
   count: number;
-  accent: string;
+  color: "info" | "warning" | "success";
   children: React.ReactNode;
 }) {
+  const accent = COLUMN_ACCENT[color];
   return (
     <div>
-      <h2 className={`mb-3 border-b-2 pb-2 font-display font-semibold text-char-900 dark:text-cream ${accent}`}>
-        {title} <span className="text-char-700/40 dark:text-cream/40">({count})</span>
-      </h2>
+      <div className={cx("mb-3 flex items-center gap-2 border-b-2 pb-2", accent.border)}>
+        <h2 className="font-display font-semibold text-char-900 dark:text-cream">{title}</h2>
+        <Badge color={accent.badge}>{count}</Badge>
+      </div>
       <div className="space-y-3">{children}</div>
     </div>
   );
@@ -253,44 +270,46 @@ function Column({
 function OrderCard({
   order,
   primaryLabel,
+  primaryIcon,
   onPrimary,
   readOnly,
 }: {
   order: Order;
   primaryLabel?: string;
+  primaryIcon?: React.ReactNode;
   onPrimary?: () => void;
   readOnly?: boolean;
 }) {
   const age = minutesSince(order.created_at);
   const urgent = age >= 15 && order.status !== "ready";
+  const TypeIcon = ORDER_TYPE_ICON[order.order_type];
 
   return (
-    <div
-      className={`rounded-card border bg-white dark:bg-char-900 p-4 shadow-sm ${
-        urgent ? "border-ember-500" : "border-char-700/10 dark:border-cream/10"
-      }`}
-    >
+    <Card padding="sm" className={urgent ? "!border-ember-500" : undefined}>
       <div className="mb-2 flex items-center justify-between">
-        <span className="font-display font-semibold text-char-900 dark:text-cream">
+        <span className="font-display text-lg font-bold text-char-900 dark:text-cream">
           #{order.order_number}
         </span>
         <span
-          className={`text-xs ${urgent ? "font-semibold text-ember-600 dark:text-ember-400" : "text-char-700/50 dark:text-cream/50"}`}
+          className={cx(
+            "flex items-center gap-1 text-xs",
+            urgent ? "font-semibold text-ember-600 dark:text-ember-400" : "text-char-700/50 dark:text-cream/50"
+          )}
         >
+          {urgent ? <AlertTriangle size={13} /> : <Clock size={13} />}
           {formatTime(order.created_at)} · {age}m ago
         </span>
       </div>
 
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        <span className="rounded-full bg-char-800/5 dark:bg-cream/5 px-2 py-0.5 text-xs font-medium capitalize text-char-700 dark:text-cream/80">
+        <Badge color="neutral" className="gap-1">
+          {TypeIcon && <TypeIcon size={11} />}
           {order.order_type === "dine_in"
             ? `Dine-in${order.table_number ? ` · Table ${order.table_number}` : ""}`
-            : order.order_type.replace("_", " ")}
-        </span>
+            : ORDER_TYPE_LABEL[order.order_type] ?? order.order_type}
+        </Badge>
         {order.order_type === "delivery" && order.delivered_by && (
-          <span className="rounded-full bg-char-800/5 dark:bg-cream/5 px-2 py-0.5 text-xs text-char-700 dark:text-cream/80">
-            Rider: {order.delivered_by}
-          </span>
+          <Badge color="neutral">Rider: {order.delivered_by}</Badge>
         )}
       </div>
 
@@ -310,24 +329,22 @@ function OrderCard({
       </ul>
 
       {order.notes && (
-        <p className="mb-3 rounded bg-char-800/5 dark:bg-cream/5 px-2 py-1 text-xs text-char-700/70 dark:text-cream/70">
+        <p className="mb-3 rounded bg-char-800/5 px-2 py-1 text-xs text-char-700/70 dark:bg-cream/5 dark:text-cream/70">
           Note: {order.notes}
         </p>
       )}
 
       {!readOnly && primaryLabel && onPrimary && (
-        <button
-          onClick={onPrimary}
-          className="w-full rounded-md bg-ember-500 py-2 text-sm font-semibold text-white hover:bg-ember-600"
-        >
+        <Button size="lg" fullWidth icon={primaryIcon} onClick={onPrimary}>
           {primaryLabel}
-        </button>
+        </Button>
       )}
       {readOnly && (
-        <p className="text-center text-sm font-medium text-green-600 dark:text-green-400">
+        <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400">
+          <CheckCircle2 size={16} />
           Waiting for pickup
         </p>
       )}
-    </div>
+    </Card>
   );
 }

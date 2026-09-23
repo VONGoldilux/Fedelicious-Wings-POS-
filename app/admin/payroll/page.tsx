@@ -1,18 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FluentProvider, Input, Caption1, tokens } from "@fluentui/react-components";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { useIsDarkMode } from "@/lib/use-dark-mode";
 import { formatPeso } from "@/lib/utils";
 import type { PayrollPayment, Profile, TimeLog } from "@/lib/types";
 
-import { brandLightTheme, brandDarkTheme } from "@/components/fluent/theme";
-import { useSharedStyles } from "@/components/fluent/styles";
-import { PageHeader } from "@/components/fluent/PageHeader";
-import { SegmentedControl } from "@/components/fluent/SegmentedControl";
-import { StatCard } from "@/components/fluent/StatCard";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { StatCard } from "@/components/ui/StatCard";
 import { PayrollTable, type PayrollRow } from "./PayrollTable";
 
 // Payday is the 15th and last day of each month — periods are always
@@ -46,18 +42,8 @@ const HALF_OPTIONS: { label: string; value: Half }[] = [
 ];
 
 export default function PayrollPage() {
-  const isDark = useIsDarkMode();
-  return (
-    <FluentProvider theme={isDark ? brandDarkTheme : brandLightTheme} style={{ backgroundColor: "transparent" }}>
-      <PayrollContent />
-    </FluentProvider>
-  );
-}
-
-function PayrollContent() {
   const supabase = createClient();
   const { profile } = useAuth();
-  const styles = useSharedStyles();
 
   const [staff, setStaff] = useState<Profile[]>([]);
   const [logs, setLogs] = useState<TimeLog[]>([]);
@@ -158,20 +144,21 @@ function PayrollContent() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacingVerticalXXL }}>
+    <div className="flex flex-col gap-8">
       <PageHeader
         title="Payroll"
         subtitle="Paid twice a month — the 15th and the last day of the month."
         action={
-          <div style={{ display: "flex", alignItems: "flex-end", gap: tokens.spacingHorizontalM }}>
+          <div className="flex items-end gap-3">
             <div>
-              <Caption1 style={{ color: tokens.colorNeutralForeground3, display: "block", marginBottom: tokens.spacingVerticalXXS }}>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
                 Month
-              </Caption1>
-              <Input
+              </label>
+              <input
                 type="month"
                 value={month}
-                onChange={(_, data) => setPeriod({ month: data.value, half })}
+                onChange={(e) => setPeriod({ month: e.target.value, half })}
+                className="h-10 rounded-md border border-char-700/20 bg-white px-2.5 text-sm dark:border-cream/15 dark:bg-char-900 dark:text-cream"
               />
             </div>
             <SegmentedControl
@@ -184,12 +171,12 @@ function PayrollContent() {
         }
       />
 
-      <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
+      <p className="text-sm text-char-700/60 dark:text-cream/60">
         Period: {periodStart} → {periodEnd}
-      </Caption1>
+      </p>
 
-      <div className={styles.statGrid}>
-        <StatCard label="Total payroll this period" value={formatPeso(grandTotal)} valueColor={tokens.colorBrandForeground1} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <StatCard label="Total payroll this period" value={formatPeso(grandTotal)} valueClassName="text-ember-600 dark:text-ember-400" />
         <StatCard
           label="Pending disbursements"
           value={String(pendingCount)}

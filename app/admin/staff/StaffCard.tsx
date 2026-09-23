@@ -1,8 +1,7 @@
 "use client";
 
-import { Card, CardHeader, Avatar, Body1Strong, Caption1, Dropdown, Option, SpinButton, tokens } from "@fluentui/react-components";
-import { ActiveStatusBadge } from "@/components/fluent/StatusBadge";
-import { useSharedStyles } from "@/components/fluent/styles";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { ActiveStatusBadge } from "@/components/ui/Badge";
 import type { Profile, UserRole } from "@/lib/types";
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
@@ -10,6 +9,15 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: "cashier", label: "Admin / Cashier" },
   { value: "kitchen", label: "Kitchen Staff" },
 ];
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+}
 
 export function StaffCard({
   staff,
@@ -24,71 +32,64 @@ export function StaffCard({
   onUpdateRate: (id: string, rate: number) => void;
   onToggleActive: (staff: Profile) => void;
 }) {
-  const styles = useSharedStyles();
-
   return (
-    <Card size="large" className={styles.card}>
+    <Card>
       <CardHeader
-        image={<Avatar name={staff.full_name} color="brand" size={40} />}
-        header={<Body1Strong>{staff.full_name}</Body1Strong>}
-        description={
-          <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
-            Joined {new Date(staff.created_at).toLocaleDateString("en-PH")}
-          </Caption1>
+        icon={
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ember-500 text-sm font-semibold text-white">
+            {initials(staff.full_name)}
+          </span>
         }
+        title={staff.full_name}
+        description={`Joined ${new Date(staff.created_at).toLocaleDateString("en-PH")}`}
         action={
           <button
             onClick={() => onToggleActive(staff)}
             disabled={saving}
             aria-label={staff.is_active ? "Deactivate account" : "Activate account"}
-            style={{ all: "unset", cursor: saving ? "default" : "pointer" }}
+            className="disabled:cursor-default"
           >
             <ActiveStatusBadge active={staff.is_active} />
           </button>
         }
       />
 
-      <div
-        style={{
-          marginTop: tokens.spacingVerticalM,
-          display: "flex",
-          flexWrap: "wrap",
-          gap: tokens.spacingHorizontalM,
-        }}
-      >
-        <div style={{ flex: "1 1 160px", minWidth: 140 }}>
-          <Caption1 style={{ color: tokens.colorNeutralForeground3, display: "block", marginBottom: tokens.spacingVerticalXXS }}>
+      <div className="mt-3 flex flex-wrap gap-4">
+        <div className="min-w-[140px] flex-1">
+          <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
             Role
-          </Caption1>
-          <Dropdown
+          </label>
+          <select
             aria-label="Role"
             disabled={saving}
-            value={ROLE_OPTIONS.find((o) => o.value === staff.role)?.label ?? ""}
-            selectedOptions={[staff.role]}
-            onOptionSelect={(_, data) => data.optionValue && onUpdateRole(staff.id, data.optionValue as UserRole)}
+            value={staff.role}
+            onChange={(e) => onUpdateRole(staff.id, e.target.value as UserRole)}
+            className="h-11 w-full rounded-md border border-char-700/20 bg-white px-2.5 text-sm disabled:opacity-60 dark:border-cream/15 dark:bg-char-800 dark:text-cream"
           >
             {ROLE_OPTIONS.map((o) => (
-              <Option key={o.value} value={o.value}>
+              <option key={o.value} value={o.value}>
                 {o.label}
-              </Option>
+              </option>
             ))}
-          </Dropdown>
+          </select>
         </div>
 
-        <div style={{ flex: "1 1 120px", minWidth: 120 }}>
-          <Caption1 style={{ color: tokens.colorNeutralForeground3, display: "block", marginBottom: tokens.spacingVerticalXXS }}>
+        <div className="min-w-[120px] flex-1">
+          <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-char-700/50 dark:text-cream/50">
             Hourly rate (₱)
-          </Caption1>
-          <SpinButton
+          </label>
+          <input
             aria-label="Hourly rate"
-            disabled={saving}
-            defaultValue={staff.hourly_rate}
+            type="number"
             min={0}
             step={5}
-            precision={2}
-            onChange={(_, data) => {
-              if (data.value != null) onUpdateRate(staff.id, data.value);
+            disabled={saving}
+            defaultValue={staff.hourly_rate}
+            onBlur={(e) => {
+              const v = Number(e.target.value);
+              if (!Number.isNaN(v) && v !== staff.hourly_rate) onUpdateRate(staff.id, v);
             }}
+            className="h-11 w-full rounded-md border border-char-700/20 bg-white px-2.5 text-sm disabled:opacity-60 dark:border-cream/15 dark:bg-char-800 dark:text-cream"
           />
         </div>
       </div>

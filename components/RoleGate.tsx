@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import AppHeader from "@/components/AppHeader";
+import { LoadingState } from "@/components/ui/EmptyState";
 import type { UserRole } from "@/lib/types";
 
 // Client-side guard as a second layer on top of middleware.ts — redirects
@@ -34,7 +35,7 @@ export default function RoleGate({
   if (loading || !profile || !allow.includes(profile.role)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream dark:bg-char-950">
-        <p className="text-char-700 dark:text-cream/80">Loading…</p>
+        <LoadingState />
       </div>
     );
   }

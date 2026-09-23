@@ -1,16 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FluentProvider, Card, CardHeader, Title3, Text, tokens } from "@fluentui/react-components";
-import { PersonAddRegular } from "@fluentui/react-icons";
+import { UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useIsDarkMode } from "@/lib/use-dark-mode";
 import type { Profile, UserRole } from "@/lib/types";
 
-import { brandLightTheme, brandDarkTheme } from "@/components/fluent/theme";
-import { useSharedStyles } from "@/components/fluent/styles";
-import { PageHeader } from "@/components/fluent/PageHeader";
-import { EmptyState, LoadingState } from "@/components/fluent/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { EmptyState, LoadingState } from "@/components/ui/EmptyState";
 import { StaffCard } from "./StaffCard";
 
 // NOTE on adding new staff accounts:
@@ -21,17 +18,7 @@ import { StaffCard } from "./StaffCard";
 // that already exist; see the "Invite a new staff member" panel below for
 // the two supported approaches.
 export default function StaffPage() {
-  const isDark = useIsDarkMode();
-  return (
-    <FluentProvider theme={isDark ? brandDarkTheme : brandLightTheme} style={{ backgroundColor: "transparent" }}>
-      <StaffContent />
-    </FluentProvider>
-  );
-}
-
-function StaffContent() {
   const supabase = createClient();
-  const styles = useSharedStyles();
   const [staff, setStaff] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -77,7 +64,7 @@ function StaffContent() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacingVerticalXXL }}>
+    <div className="flex flex-col gap-8">
       <PageHeader
         title="Staff Management"
         subtitle="Assign roles and hourly rates. Deactivating an account blocks login without deleting their history."
@@ -88,7 +75,7 @@ function StaffContent() {
       ) : staff.length === 0 ? (
         <EmptyState message="No staff accounts yet." />
       ) : (
-        <div className={styles.cardGrid}>
+        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
           {staff.map((p) => (
             <StaffCard
               key={p.id}
@@ -102,36 +89,21 @@ function StaffContent() {
         </div>
       )}
 
-      <Card size="large" className={styles.card}>
-        <CardHeader
-          image={<PersonAddRegular fontSize={20} style={{ color: tokens.colorBrandForeground1 }} />}
-          header={<Title3>Invite a new staff member</Title3>}
-        />
-        <ol
-          style={{
-            marginTop: tokens.spacingVerticalM,
-            paddingLeft: tokens.spacingHorizontalXL,
-            display: "flex",
-            flexDirection: "column",
-            gap: tokens.spacingVerticalS,
-            color: tokens.colorNeutralForeground2,
-          }}
-        >
+      <Card>
+        <CardHeader icon={<UserPlus size={18} />} title="Invite a new staff member" />
+        <ol className="ml-5 mt-3 list-decimal space-y-2 text-sm text-char-700/80 dark:text-cream/70">
           <li>
-            <Text weight="semibold">Self sign-up:</Text>{" "}
-            <Text>
-              add a sign-up form (Supabase Auth <code>signUp()</code>) and send the staff member the link — a{" "}
-              <code>profiles</code> row is created automatically with the default <code>cashier</code> role, which you
-              then change above.
-            </Text>
+            <span className="font-semibold text-char-900 dark:text-cream">Self sign-up:</span>{" "}
+            add a sign-up form (Supabase Auth <code>signUp()</code>) and send the staff member the
+            link — a <code>profiles</code> row is created automatically with the default{" "}
+            <code>cashier</code> role, which you then change above.
           </li>
           <li>
-            <Text weight="semibold">Admin-created:</Text>{" "}
-            <Text>
-              build a small <code>/app/api/staff/invite/route.ts</code> Route Handler that calls{" "}
-              <code>supabase.auth.admin.createUser()</code> using the <code>SUPABASE_SERVICE_ROLE_KEY</code>{" "}
-              (server-side only) to create the account and send an invite email directly from this page.
-            </Text>
+            <span className="font-semibold text-char-900 dark:text-cream">Admin-created:</span>{" "}
+            build a small <code>/app/api/staff/invite/route.ts</code> Route Handler that calls{" "}
+            <code>supabase.auth.admin.createUser()</code> using the{" "}
+            <code>SUPABASE_SERVICE_ROLE_KEY</code> (server-side only) to create the account and
+            send an invite email directly from this page.
           </li>
         </ol>
       </Card>

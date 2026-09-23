@@ -1,12 +1,12 @@
 "use client";
 
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
-import { Card, CardHeader, Title3, Body1Strong, Caption1, Text, Badge, tokens } from "@fluentui/react-components";
-import type { FluentIcon } from "@fluentui/react-icons";
+import type { LucideIcon } from "lucide-react";
 import { formatPeso } from "@/lib/utils";
 import { useIsDarkMode } from "@/lib/use-dark-mode";
-import { useSharedStyles } from "@/components/fluent/styles";
-import { EmptyState, LoadingState } from "@/components/fluent/EmptyState";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState, LoadingState } from "@/components/ui/EmptyState";
 
 export interface DonutMetricItem {
   key: string;
@@ -14,7 +14,7 @@ export interface DonutMetricItem {
   count: number;
   revenue: number;
   color: string;
-  Icon: FluentIcon;
+  Icon: LucideIcon;
 }
 
 const RADIAN = Math.PI / 180;
@@ -63,43 +63,30 @@ export function MetricDonutCard({
   emptyLabel,
 }: {
   title: string;
-  HeaderIcon: FluentIcon;
+  HeaderIcon: LucideIcon;
   items: DonutMetricItem[];
   loading: boolean;
   emptyLabel: string;
 }) {
-  const styles = useSharedStyles();
   const isDark = useIsDarkMode();
   const totalRevenue = items.reduce((sum, i) => sum + i.revenue, 0);
   const totalCount = items.reduce((sum, i) => sum + i.count, 0);
 
   return (
-    <Card size="large" className={styles.card}>
+    <Card>
       <CardHeader
-        image={<HeaderIcon fontSize={20} style={{ color: tokens.colorBrandForeground1 }} />}
-        header={<Title3>{title}</Title3>}
-        description={
-          <Caption1>
-            {totalCount} order{totalCount === 1 ? "" : "s"} total
-          </Caption1>
-        }
+        icon={<HeaderIcon size={18} />}
+        title={title}
+        description={`${totalCount} order${totalCount === 1 ? "" : "s"} total`}
       />
 
       {loading ? (
         <LoadingState />
       ) : totalRevenue === 0 ? (
-        <EmptyState icon={HeaderIcon} message={emptyLabel} />
+        <EmptyState icon={<HeaderIcon size={26} />} message={emptyLabel} />
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: tokens.spacingHorizontalXL,
-            paddingTop: tokens.spacingVerticalM,
-          }}
-        >
-          <div style={{ position: "relative", width: 168, height: 168, flexShrink: 0 }}>
+        <div className="flex flex-wrap items-center gap-6 pt-2">
+          <div className="relative h-[168px] w-[168px] shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -128,59 +115,30 @@ export function MetricDonutCard({
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                pointerEvents: "none",
-              }}
-            >
-              <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>Total</Caption1>
-              <Body1Strong>{formatPeso(totalRevenue)}</Body1Strong>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-xs text-char-700/50 dark:text-cream/50">Total</span>
+              <span className="font-semibold text-char-900 dark:text-cream">{formatPeso(totalRevenue)}</span>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: tokens.spacingVerticalS,
-              flex: "1 1 220px",
-              minWidth: 200,
-            }}
-          >
+          <div className="flex min-w-[200px] flex-1 flex-col gap-2.5">
             {items.map((item) => {
               const pct = totalRevenue ? Math.round((item.revenue / totalRevenue) * 100) : 0;
               return (
-                <div key={item.key} style={{ display: "flex", alignItems: "center", gap: tokens.spacingHorizontalS }}>
+                <div key={item.key} className="flex items-center gap-2.5">
                   <span
                     aria-hidden
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 999,
-                      backgroundColor: item.color,
-                      flexShrink: 0,
-                    }}
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: item.color }}
                   />
-                  <item.Icon fontSize={16} style={{ color: tokens.colorNeutralForeground3, flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text block>{item.label}</Text>
-                    <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
+                  <item.Icon size={16} className="shrink-0 text-char-700/50 dark:text-cream/50" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-char-900 dark:text-cream">{item.label}</p>
+                    <p className="text-xs text-char-700/50 dark:text-cream/50">
                       {item.count} order{item.count === 1 ? "" : "s"} · {formatPeso(item.revenue)}
-                    </Caption1>
+                    </p>
                   </div>
-                  <Badge
-                    appearance="tint"
-                    shape="rounded"
-                    style={{ backgroundColor: `${item.color}22`, color: item.color }}
-                  >
-                    {pct}%
-                  </Badge>
+                  <Badge style={{ backgroundColor: `${item.color}22`, color: item.color }}>{pct}%</Badge>
                 </div>
               );
             })}

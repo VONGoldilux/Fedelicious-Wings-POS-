@@ -2,9 +2,16 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Image from "next/image";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatPeso } from "@/lib/utils";
 import type { Product } from "@/lib/types";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Modal } from "@/components/ui/Modal";
+import { LoadingState } from "@/components/ui/EmptyState";
 
 const CATEGORY_OPTIONS = [
   "Wings",
@@ -160,99 +167,72 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
-            Menu Management
-          </h1>
-          <p className="text-sm text-char-700/70 dark:text-cream/70">
-            Add, edit, and photograph items on the Fedelicious Wings menu.
-          </p>
-        </div>
-        <button
-          onClick={openNewForm}
-          className="rounded-md bg-ember-500 px-4 py-2 font-medium text-white hover:bg-ember-600"
-        >
-          + New item
-        </button>
-      </div>
+      <PageHeader
+        title="Menu Management"
+        subtitle="Add, edit, and photograph items on the Fedelicious Wings menu."
+        action={
+          <Button icon={<Plus size={16} />} onClick={openNewForm}>
+            New item
+          </Button>
+        }
+      />
 
       {loading ? (
-        <p className="text-char-700/60 dark:text-cream/60">Loading menu…</p>
+        <LoadingState label="Loading menu…" />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((p) => (
-            <div
-              key={p.id}
-              className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm"
-            >
+            <Card key={p.id} padding="none" className="overflow-hidden">
               <div className="relative h-36 w-full bg-char-800/5 dark:bg-cream/5">
                 {p.image_url ? (
-                  <Image
-                    src={p.image_url}
-                    alt={p.name}
-                    fill
-                    className="object-cover"
-                  />
+                  <Image src={p.image_url} alt={p.name} fill className="object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-char-700/30 dark:text-cream/30">
                     No image
                   </div>
                 )}
                 {!p.is_available && (
-                  <span className="absolute left-2 top-2 rounded bg-char-950/80 px-2 py-0.5 text-xs text-cream">
-                    Unavailable
+                  <span className="absolute left-2 top-2">
+                    <Badge color="neutral" className="!bg-char-950/80 !text-cream">
+                      Unavailable
+                    </Badge>
                   </span>
                 )}
               </div>
-              <div className="p-3">
-                <p className="text-xs uppercase tracking-wide text-ember-600 dark:text-ember-400">
+              <div className="p-3.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ember-600 dark:text-ember-400">
                   {p.category}
                 </p>
-                <h3 className="font-display font-semibold text-char-900 dark:text-cream">
-                  {p.name}
-                </h3>
+                <h3 className="font-display font-semibold text-char-900 dark:text-cream">{p.name}</h3>
                 <p className="mt-1 text-sm font-semibold text-char-900 dark:text-cream">
                   {formatPeso(p.price)}
                 </p>
-                <div className="mt-3 flex gap-2 text-sm">
-                  <button
-                    onClick={() => openEditForm(p)}
-                    className="rounded border border-char-700/20 dark:border-cream/15 px-2 py-1 text-char-700 dark:text-cream/80 hover:border-ember-500 hover:text-ember-600 dark:hover:text-ember-400"
-                  >
+                <div className="mt-3 flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => openEditForm(p)}>
                     Edit
-                  </button>
-                  <button
-                    onClick={() => toggleAvailability(p)}
-                    className="rounded border border-char-700/20 dark:border-cream/15 px-2 py-1 text-char-700 dark:text-cream/80 hover:border-ember-500 hover:text-ember-600 dark:hover:text-ember-400"
-                  >
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => toggleAvailability(p)}>
                     {p.is_available ? "Hide" : "Show"}
-                  </button>
-                  <button
-                    onClick={() => deleteProduct(p)}
-                    className="ml-auto rounded px-2 py-1 text-ember-600 dark:text-ember-400 hover:bg-ember-50 dark:hover:bg-ember-500/15"
-                  >
+                  </Button>
+                  <Button size="sm" variant="ghost" className="ml-auto !text-red-600 dark:!text-red-400" onClick={() => deleteProduct(p)}>
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
-          <form
-            onSubmit={handleSubmit}
-            className="w-full max-w-md rounded-card bg-white dark:bg-char-900 p-6 shadow-xl"
-          >
-            <h2 className="mb-4 font-display text-lg font-semibold">
+        <Modal onClose={() => setShowForm(false)} maxWidth="md">
+          <form onSubmit={handleSubmit}>
+            <h2 className="mb-4 font-display text-lg font-semibold text-char-900 dark:text-cream">
               {form.id ? "Edit item" : "New menu item"}
             </h2>
 
             {error && (
-              <div className="mb-3 rounded border border-ember-300 dark:border-ember-500/40 bg-ember-50 dark:bg-ember-500/15 px-3 py-2 text-sm text-ember-700 dark:text-ember-300">
+              <div className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-400">
                 {error}
               </div>
             )}
@@ -262,31 +242,17 @@ export default function ProductsPage() {
             </label>
             <div className="mb-4 flex items-center gap-3">
               <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-char-800/5 dark:bg-cream/5">
-                {imagePreview && (
-                  <Image
-                    src={imagePreview}
-                    alt="Preview"
-                    fill
-                    className="object-cover"
-                  />
-                )}
+                {imagePreview && <Image src={imagePreview} alt="Preview" fill className="object-cover" />}
               </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="text-sm"
-              />
+              <input type="file" accept="image/*" onChange={handleFileChange} className="text-sm text-char-700 dark:text-cream/80" />
             </div>
 
-            <label className="mb-1 block text-sm font-medium text-char-700 dark:text-cream/80">
-              Name
-            </label>
+            <label className="mb-1 block text-sm font-medium text-char-700 dark:text-cream/80">Name</label>
             <input
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+              className="mb-3 h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
               placeholder="e.g. Spicy Garlic Wings (6pc)"
             />
 
@@ -296,7 +262,7 @@ export default function ProductsPage() {
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+              className="mb-3 w-full rounded-md border border-char-700/20 px-3 py-2 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
               rows={2}
               placeholder="Short description shown to cashiers/customers"
             />
@@ -313,7 +279,7 @@ export default function ProductsPage() {
                   step="0.01"
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                  className="h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                 />
               </div>
               <div>
@@ -323,7 +289,7 @@ export default function ProductsPage() {
                 <select
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                  className="h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                 >
                   {(CATEGORY_OPTIONS.includes(form.category)
                     ? CATEGORY_OPTIONS
@@ -341,31 +307,22 @@ export default function ProductsPage() {
               <input
                 type="checkbox"
                 checked={form.is_available}
-                onChange={(e) =>
-                  setForm({ ...form, is_available: e.target.checked })
-                }
+                onChange={(e) => setForm({ ...form, is_available: e.target.checked })}
+                className="h-4 w-4 accent-ember-500"
               />
               Available on the POS
             </label>
 
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="rounded-md px-4 py-2 text-char-700 dark:text-cream/80 hover:bg-char-800/5 dark:hover:bg-cream/5"
-              >
+              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
                 Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-md bg-ember-500 px-4 py-2 font-medium text-white hover:bg-ember-600 disabled:opacity-60"
-              >
+              </Button>
+              <Button type="submit" loading={saving}>
                 {saving ? "Saving…" : "Save item"}
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

@@ -40,6 +40,14 @@ const config: Config = {
       borderRadius: {
         card: "0.875rem",
       },
+      boxShadow: {
+        // Warm-tinted shadows (char, not neutral gray) so elevated cards
+        // read as part of this palette instead of a generic SaaS drop shadow.
+        card: "0 1px 2px 0 rgba(26,21,18,0.06), 0 1px 3px 0 rgba(26,21,18,0.06)",
+        "card-lg": "0 4px 10px -2px rgba(26,21,18,0.12), 0 2px 4px -2px rgba(26,21,18,0.08)",
+        "card-dark": "0 1px 2px 0 rgba(0,0,0,0.4), 0 1px 3px 0 rgba(0,0,0,0.3)",
+        "card-lg-dark": "0 4px 10px -2px rgba(0,0,0,0.5), 0 2px 4px -2px rgba(0,0,0,0.4)",
+      },
     },
   },
   plugins: [],

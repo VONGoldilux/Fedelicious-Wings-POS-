@@ -1,25 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FluentProvider, Title2, Text, tokens } from "@fluentui/react-components";
-import {
-  ChartMultipleRegular,
-  WalletRegular,
-  TableRegular,
-  ShoppingBagRegular,
-  VehicleCarRegular,
-  MoneyHandRegular,
-  WalletCreditCardRegular,
-} from "@fluentui/react-icons";
+import { PieChart, CreditCard, UtensilsCrossed, ShoppingBag, Truck, Banknote, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useIsDarkMode } from "@/lib/use-dark-mode";
 import type { Product } from "@/lib/types";
 
-import { brandLightTheme, brandDarkTheme } from "@/components/fluent/theme";
-import { useSharedStyles } from "@/components/fluent/styles";
-import { PageHeader } from "@/components/fluent/PageHeader";
-import { SegmentedControl } from "@/components/fluent/SegmentedControl";
-import { LoadingState } from "@/components/fluent/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { LoadingState } from "@/components/ui/EmptyState";
 import { MetricDonutCard, type DonutMetricItem } from "./MetricDonutCard";
 import { CategoryCard } from "./CategoryCard";
 import { DeadStockTable } from "./DeadStockTable";
@@ -39,19 +27,18 @@ import {
 } from "./constants";
 import { paymentMethodLabel } from "@/lib/utils";
 
-const ORDER_TYPE_ICON: Record<string, typeof TableRegular> = {
-  dine_in: TableRegular,
-  takeout: ShoppingBagRegular,
-  delivery: VehicleCarRegular,
+const ORDER_TYPE_ICON: Record<string, typeof UtensilsCrossed> = {
+  dine_in: UtensilsCrossed,
+  takeout: ShoppingBag,
+  delivery: Truck,
 };
-const PAYMENT_ICON: Record<string, typeof MoneyHandRegular> = {
-  cash: MoneyHandRegular,
-  gcash: WalletCreditCardRegular,
+const PAYMENT_ICON: Record<string, typeof Banknote> = {
+  cash: Banknote,
+  gcash: Wallet,
 };
 
 export default function AnalyticsPage() {
   const supabase = createClient();
-  const isDark = useIsDarkMode();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [rangeDays, setRangeDays] = useState(30);
@@ -280,90 +267,25 @@ export default function AnalyticsPage() {
   }));
 
   return (
-    // Scoped to this page only — the outer cream/char-950 canvas from
-    // RoleGate stays as-is, this just themes the Fluent components that sit
-    // on top of it (FluentProvider's own background is switched off below).
-    <FluentProvider theme={isDark ? brandDarkTheme : brandLightTheme} style={{ backgroundColor: "transparent" }}>
-      <AnalyticsContent
-        rangeDays={rangeDays}
-        setRangeDays={setRangeDays}
-        granularity={granularity}
-        setGranularity={setGranularity}
-        loadingOrderTypes={loadingOrderTypes}
-        channelItems={channelItems}
-        paymentItems={paymentItems}
-        loadingStats={loadingStats}
-        byCategory={byCategory}
-        deadStock={deadStock}
-        rangeLabel={rangeLabel}
-        loadingTrend={loadingTrend}
-        chartData={chartData}
-        topProductNames={topProductNames}
-      />
-    </FluentProvider>
-  );
-}
-
-function AnalyticsContent({
-  rangeDays,
-  setRangeDays,
-  granularity,
-  setGranularity,
-  loadingOrderTypes,
-  channelItems,
-  paymentItems,
-  loadingStats,
-  byCategory,
-  deadStock,
-  rangeLabel,
-  loadingTrend,
-  chartData,
-  topProductNames,
-}: {
-  rangeDays: number;
-  setRangeDays: (v: number) => void;
-  granularity: Granularity;
-  setGranularity: (v: Granularity) => void;
-  loadingOrderTypes: boolean;
-  channelItems: DonutMetricItem[];
-  paymentItems: DonutMetricItem[];
-  loadingStats: boolean;
-  byCategory: { category: string; sold: CategoryItemStat[]; soldQty: number; soldRevenue: number }[];
-  deadStock: CategoryItemStat[];
-  rangeLabel: string;
-  loadingTrend: boolean;
-  chartData: Record<string, number | string>[];
-  topProductNames: string[];
-}) {
-  const styles = useSharedStyles();
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacingVerticalXXL }}>
+    <div className="flex flex-col gap-8">
       <PageHeader
         title="Analytics"
         subtitle="What's selling, what isn't, and how it's trending."
-        action={
-          <SegmentedControl
-            ariaLabel="Date range"
-            options={RANGE_OPTIONS}
-            value={rangeDays}
-            onChange={setRangeDays}
-          />
-        }
+        action={<SegmentedControl ariaLabel="Date range" options={RANGE_OPTIONS} value={rangeDays} onChange={setRangeDays} />}
       />
 
       {/* ---------- Orders by channel + Payment methods ---------- */}
-      <div className={styles.cardGrid}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
         <MetricDonutCard
           title="Orders by channel"
-          HeaderIcon={ChartMultipleRegular}
+          HeaderIcon={PieChart}
           items={channelItems}
           loading={loadingOrderTypes}
           emptyLabel="No orders yet in this window"
         />
         <MetricDonutCard
           title="Payment methods"
-          HeaderIcon={WalletRegular}
+          HeaderIcon={CreditCard}
           items={paymentItems}
           loading={loadingOrderTypes}
           emptyLabel="No payments yet in this window"
@@ -372,18 +294,16 @@ function AnalyticsContent({
 
       {/* ---------- Best sellers per category ---------- */}
       <div>
-        <div className={styles.sectionHeaderRow}>
-          <Title2 as="h2" style={{ fontSize: tokens.fontSizeBase500 }}>
-            Best sellers by category
-          </Title2>
-        </div>
+        <h2 className="mb-3 font-display text-lg font-semibold text-char-900 dark:text-cream">
+          Best sellers by category
+        </h2>
 
         {loadingStats ? (
           <LoadingState />
         ) : byCategory.length === 0 ? (
-          <Text style={{ color: tokens.colorNeutralForeground3 }}>No menu items yet.</Text>
+          <p className="text-sm text-char-700/60 dark:text-cream/60">No menu items yet.</p>
         ) : (
-          <div className={styles.cardGrid}>
+          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
             {byCategory.map((c) => (
               <CategoryCard key={c.category} {...c} />
             ))}

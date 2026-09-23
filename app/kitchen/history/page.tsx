@@ -4,17 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateTime } from "@/lib/utils";
 import type { Order } from "@/lib/types";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { StatCard } from "@/components/ui/StatCard";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { Badge } from "@/components/ui/Badge";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 
 const RANGE_OPTIONS = [
-  { label: "Today", days: 1 },
-  { label: "Last 7 days", days: 7 },
-  { label: "Last 30 days", days: 30 },
+  { label: "Today", value: 1 },
+  { label: "Last 7 days", value: 7 },
+  { label: "Last 30 days", value: 30 },
 ];
-
-const STATUS_STYLES: Record<string, string> = {
-  completed: "bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400",
-  ready: "bg-mustard-100 dark:bg-mustard-500/20 text-mustard-700 dark:text-mustard-300",
-};
 
 const ORDER_TYPE_LABEL: Record<string, string> = {
   dine_in: "Dine-in",
@@ -66,106 +67,58 @@ export default function KitchenHistoryPage() {
     return { count: orders.length, avgPrep: avg };
   }, [orders]);
 
+  const columns: DataTableColumn<Order>[] = [
+    { id: "order", header: "Order", cell: (o) => <span className="font-semibold text-char-900 dark:text-cream">#{o.order_number}</span> },
+    {
+      id: "type",
+      header: "Type",
+      cell: (o) =>
+        `${ORDER_TYPE_LABEL[o.order_type] ?? o.order_type}${
+          o.order_type === "dine_in" && o.table_number ? ` · Table ${o.table_number}` : ""
+        }`,
+    },
+    { id: "queued_at", header: "Queued at", cell: (o) => formatDateTime(o.created_at) },
+    { id: "ready_at", header: "Ready at", cell: (o) => (o.ready_at ? formatDateTime(o.ready_at) : "—") },
+    { id: "prep", header: "Prep time", cell: (o) => `${prepMinutes(o) ?? "—"}m` },
+    {
+      id: "items",
+      header: "Items",
+      cell: (o) => `${o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items`,
+    },
+    { id: "status", header: "Status", cell: (o) => <Badge color="success" className="capitalize">{o.status}</Badge> },
+  ];
+
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
-            Handled Orders
-          </h1>
-          <p className="text-sm text-char-700/70 dark:text-cream/70">
-            Orders you've marked ready, most recent first.
-          </p>
-        </div>
-        <div className="flex gap-1 rounded-full bg-char-800/5 dark:bg-cream/5 p-1">
-          {RANGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.days}
-              onClick={() => setRangeDays(opt.days)}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                rangeDays === opt.days
-                  ? "bg-ember-500 text-white"
-                  : "text-char-700 dark:text-cream/80 hover:bg-char-800/10 dark:hover:bg-cream/10"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHeader
+        title="Handled Orders"
+        subtitle="Orders you've marked ready, most recent first."
+        action={<SegmentedControl ariaLabel="Date range" options={RANGE_OPTIONS} value={rangeDays} onChange={setRangeDays} />}
+      />
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:max-w-md">
-        <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-4 shadow-sm">
-          <p className="text-xs text-char-700/50 dark:text-cream/50">Orders handled</p>
-          <p className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
-            {summary.count}
-          </p>
-        </div>
-        <div className="rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 p-4 shadow-sm">
-          <p className="text-xs text-char-700/50 dark:text-cream/50">Avg. prep time</p>
-          <p className="font-display text-2xl font-semibold text-ember-600 dark:text-ember-400">
-            {summary.avgPrep}m
-          </p>
-        </div>
+        <StatCard label="Orders handled" value={String(summary.count)} />
+        <StatCard label="Avg. prep time" value={`${summary.avgPrep}m`} valueClassName="text-ember-600 dark:text-ember-400" />
       </div>
 
-      {loading ? (
-        <p className="text-char-700/60 dark:text-cream/60">Loading history…</p>
-      ) : orders.length === 0 ? (
-        <p className="text-char-700/60 dark:text-cream/60">No handled orders in this range yet.</p>
-      ) : (
-        <div className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-char-800/5 dark:bg-cream/5 text-xs uppercase text-char-700/50 dark:text-cream/50">
-              <tr>
-                <th className="px-4 py-2.5">Order</th>
-                <th className="px-4 py-2.5">Type</th>
-                <th className="px-4 py-2.5">Queued at</th>
-                <th className="px-4 py-2.5">Ready at</th>
-                <th className="px-4 py-2.5">Prep time</th>
-                <th className="px-4 py-2.5">Items</th>
-                <th className="px-4 py-2.5">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-char-700/10 dark:divide-cream/10">
-              {orders.map((o) => (
-                <tr key={o.id}>
-                  <td className="px-4 py-3 font-medium text-char-900 dark:text-cream">
-                    #{o.order_number}
-                  </td>
-                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
-                    {ORDER_TYPE_LABEL[o.order_type] ?? o.order_type}
-                    {o.order_type === "dine_in" && o.table_number
-                      ? ` · Table ${o.table_number}`
-                      : ""}
-                  </td>
-                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
-                    {formatDateTime(o.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
-                    {o.ready_at ? formatDateTime(o.ready_at) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
-                    {prepMinutes(o) ?? "—"}m
-                  </td>
-                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
-                    {o.order_items?.reduce((n, it) => n + it.quantity, 0) ?? 0}× items
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                        STATUS_STYLES[o.status] ?? "bg-char-800/10 dark:bg-cream/10 text-char-700 dark:text-cream/80"
-                      }`}
-                    >
-                      {o.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card padding="none">
+        <DataTable
+          columns={columns}
+          rows={orders}
+          getRowId={(o) => o.id}
+          emptyMessage={
+            loading ? (
+              <p className="px-4 py-8 text-center text-sm text-char-700/60 dark:text-cream/60">
+                Loading history…
+              </p>
+            ) : (
+              <p className="px-4 py-8 text-center text-sm text-char-700/60 dark:text-cream/60">
+                No handled orders in this range yet.
+              </p>
+            )
+          }
+        />
+      </Card>
     </div>
   );
 }

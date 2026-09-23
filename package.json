@@ -9,10 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@fluentui/react-components": "^9.74.8",
-    "@fluentui/react-icons": "^2.0.341",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
+    "lucide-react": "^1.47.0",
     "next": "14.2.15",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

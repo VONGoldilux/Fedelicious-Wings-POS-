@@ -3,6 +3,7 @@
 import { Suspense, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import { AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
@@ -56,8 +57,9 @@ function LoginForm() {
           className="rounded-card border border-char-700 bg-char-900 p-6 shadow-xl"
         >
           {(error || inactiveError) && (
-            <div className="mb-4 rounded-md border border-ember-700 bg-ember-700/10 px-3 py-2 text-sm text-ember-400">
-              {error ?? "This account has been deactivated. Contact the Super Admin."}
+            <div className="mb-4 flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>{error ?? "This account has been deactivated. Contact the Super Admin."}</span>
             </div>
           )}
 
@@ -69,7 +71,7 @@ function LoginForm() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mb-4 w-full rounded-md border border-char-700 bg-char-800 px-3 py-2 text-cream placeholder:text-cream/30 focus:border-ember-500 focus:outline-none"
+            className="mb-4 h-12 w-full rounded-md border border-char-700 bg-char-800 px-3 text-cream placeholder:text-cream/30 focus:border-ember-500 focus:outline-none"
             placeholder="you@fedeliciouswings.com"
           />
 
@@ -81,14 +83,14 @@ function LoginForm() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mb-6 w-full rounded-md border border-char-700 bg-char-800 px-3 py-2 text-cream placeholder:text-cream/30 focus:border-ember-500 focus:outline-none"
+            className="mb-6 h-12 w-full rounded-md border border-char-700 bg-char-800 px-3 text-cream placeholder:text-cream/30 focus:border-ember-500 focus:outline-none"
             placeholder="••••••••"
           />
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-md bg-ember-500 py-2.5 font-semibold text-char-950 transition-colors hover:bg-ember-400 disabled:opacity-60"
+            className="h-12 w-full rounded-md bg-ember-500 font-semibold text-char-950 transition-colors hover:bg-ember-400 disabled:opacity-60"
           >
             {submitting ? "Signing in…" : "Sign in & clock in"}
           </button>

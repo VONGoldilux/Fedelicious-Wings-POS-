@@ -4,7 +4,9 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { cx } from "@/lib/utils";
 import CashCountModal from "@/components/CashCountModal";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -29,6 +31,9 @@ const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
   ],
 };
 
+// This header is intentionally always-dark chrome (brand identity), unlike
+// the content area beneath it which flips with the site theme — so it uses
+// its own cream-on-char classes rather than the theme-aware `Button` kit.
 export default function AppHeader() {
   const { profile, activeClockIn, signOut } = useAuth();
   const pathname = usePathname();
@@ -46,7 +51,7 @@ export default function AppHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-char-700/60 bg-char-950/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 sm:px-6">
         <div className="flex items-center gap-8">
           <span className="flex items-center gap-2">
             <Image
@@ -67,11 +72,12 @@ export default function AppHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={cx(
+                    "flex h-10 items-center rounded-md px-3.5 text-sm font-medium transition-colors",
                     active
                       ? "bg-ember-500 text-char-950"
                       : "text-cream/70 hover:bg-char-800 hover:text-cream"
-                  }`}
+                  )}
                 >
                   {link.label}
                 </Link>
@@ -80,9 +86,9 @@ export default function AppHeader() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {profile && (
-            <div className="text-right leading-tight">
+            <div className="hidden text-right leading-tight sm:block">
               <p className="text-sm font-medium text-cream">{profile.full_name}</p>
               <p className="text-xs capitalize text-cream/50">
                 {profile.role.replace("_", " ")}
@@ -92,9 +98,10 @@ export default function AppHeader() {
           <ThemeToggle />
           <button
             onClick={handleSignOutClick}
-            className="rounded-md border border-char-700 px-3 py-1.5 text-sm text-cream/80 transition-colors hover:border-ember-500 hover:text-ember-400"
+            className="flex h-10 items-center gap-1.5 rounded-md border border-char-700 px-3 text-sm text-cream/80 transition-colors hover:border-ember-500 hover:text-ember-400"
           >
-            Clock out &amp; sign out
+            <LogOut size={15} />
+            <span className="hidden sm:inline">Clock out &amp; sign out</span>
           </button>
         </div>
       </div>
@@ -114,9 +121,10 @@ export default function AppHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className={`shrink-0 rounded-md px-3 py-1.5 text-sm font-medium ${
+              className={cx(
+                "flex h-10 shrink-0 items-center rounded-md px-3.5 text-sm font-medium",
                 active ? "bg-ember-500 text-char-950" : "text-cream/70"
-              }`}
+              )}
             >
               {link.label}
             </Link>

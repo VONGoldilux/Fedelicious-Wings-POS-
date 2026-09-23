@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatPeso } from "@/lib/utils";
 import {
@@ -11,6 +12,13 @@ import {
   type Promotion,
   type Weekday,
 } from "@/lib/types";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Modal } from "@/components/ui/Modal";
+import { EmptyState, LoadingState } from "@/components/ui/EmptyState";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 
 const PROMO_TYPE_LABEL: Record<PromoType, string> = {
   discount_percentage: "% Discount",
@@ -239,126 +247,113 @@ export default function PromosPage() {
     loadPromotions();
   }
 
+  const columns: DataTableColumn<Promotion>[] = [
+    {
+      id: "name",
+      header: "Name",
+      sortValue: (p) => p.name,
+      cell: (promo) => (
+        <div>
+          <p className="font-medium text-char-900 dark:text-cream">{promo.name}</p>
+          {promo.description && (
+            <p className="line-clamp-1 text-xs text-char-700/50 dark:text-cream/50">{promo.description}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "type",
+      header: "Type",
+      sortValue: (p) => p.promo_type,
+      cell: (promo) => PROMO_TYPE_LABEL[promo.promo_type],
+    },
+    {
+      id: "value",
+      header: "Value",
+      cell: (promo) => (
+        <>
+          {promo.promo_type === "discount_percentage" && `${promo.discount_value}%`}
+          {promo.promo_type === "discount_flat" && formatPeso(promo.discount_value ?? 0)}
+          {promo.promo_type === "free_item" &&
+            `${promo.required_items[0]?.product_name ?? "?"} → free ${promo.reward_items[0]?.product_name ?? "?"}`}
+          {promo.promo_type === "bundle" &&
+            `${promo.reward_items.length} items · ${formatPeso(promo.bundle_price ?? 0)}`}
+        </>
+      ),
+    },
+    {
+      id: "dates",
+      header: "Dates",
+      sortValue: (p) => p.start_date,
+      cell: (promo) => `${promo.start_date} → ${promo.end_date}`,
+    },
+    {
+      id: "days",
+      header: "Days",
+      cell: (promo) =>
+        promo.valid_days && promo.valid_days.length > 0
+          ? promo.valid_days.map((d) => d.slice(0, 3)).join(", ")
+          : "Every day",
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (promo) => (
+        <button onClick={() => toggleActive(promo)}>
+          <Badge color={promo.is_active ? "success" : "neutral"}>
+            {promo.is_active ? "Active" : "Disabled"}
+          </Badge>
+        </button>
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      align: "right",
+      cell: (promo) => (
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={() => openEditForm(promo)}>
+            Edit
+          </Button>
+          <Button size="sm" variant="ghost" className="!text-red-600 dark:!text-red-400" onClick={() => deletePromo(promo)}>
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
-            Promo Manager
-          </h1>
-          <p className="text-sm text-char-700/70 dark:text-cream/70">
-            Discounts, buy-one-get-one deals, and bundle combos.
-          </p>
-        </div>
-        <button
-          onClick={openNewForm}
-          className="rounded-md bg-ember-500 px-4 py-2 font-medium text-white hover:bg-ember-600"
-        >
-          + New promo
-        </button>
-      </div>
+      <PageHeader
+        title="Promo Manager"
+        subtitle="Discounts, buy-one-get-one deals, and bundle combos."
+        action={
+          <Button icon={<Plus size={16} />} onClick={openNewForm}>
+            New promo
+          </Button>
+        }
+      />
 
       {loading ? (
-        <p className="text-char-700/60 dark:text-cream/60">Loading promos…</p>
+        <LoadingState label="Loading promos…" />
       ) : promotions.length === 0 ? (
-        <p className="text-char-700/60 dark:text-cream/60">No promos yet.</p>
+        <EmptyState message="No promos yet." />
       ) : (
-        <div className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-char-800/5 dark:bg-cream/5 text-xs uppercase text-char-700/50 dark:text-cream/50">
-              <tr>
-                <th className="px-4 py-2.5">Name</th>
-                <th className="px-4 py-2.5">Type</th>
-                <th className="px-4 py-2.5">Value</th>
-                <th className="px-4 py-2.5">Dates</th>
-                <th className="px-4 py-2.5">Days</th>
-                <th className="px-4 py-2.5">Status</th>
-                <th className="px-4 py-2.5"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-char-700/10 dark:divide-cream/10">
-              {promotions.map((promo) => (
-                <tr key={promo.id}>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-char-900 dark:text-cream">{promo.name}</p>
-                    {promo.description && (
-                      <p className="text-xs text-char-700/50 dark:text-cream/50 line-clamp-1">
-                        {promo.description}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
-                    {PROMO_TYPE_LABEL[promo.promo_type]}
-                  </td>
-                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
-                    {promo.promo_type === "discount_percentage" &&
-                      `${promo.discount_value}%`}
-                    {promo.promo_type === "discount_flat" &&
-                      formatPeso(promo.discount_value ?? 0)}
-                    {promo.promo_type === "free_item" &&
-                      `${promo.required_items[0]?.product_name ?? "?"} → free ${
-                        promo.reward_items[0]?.product_name ?? "?"
-                      }`}
-                    {promo.promo_type === "bundle" &&
-                      `${promo.reward_items.length} items · ${formatPeso(
-                        promo.bundle_price ?? 0
-                      )}`}
-                  </td>
-                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
-                    {promo.start_date} → {promo.end_date}
-                  </td>
-                  <td className="px-4 py-3 text-char-700/70 dark:text-cream/70">
-                    {promo.valid_days && promo.valid_days.length > 0
-                      ? promo.valid_days.map((d) => d.slice(0, 3)).join(", ")
-                      : "Every day"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => toggleActive(promo)}
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        promo.is_active
-                          ? "bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400"
-                          : "bg-char-800/10 dark:bg-cream/10 text-char-700 dark:text-cream/80"
-                      }`}
-                    >
-                      {promo.is_active ? "Active" : "Disabled"}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => openEditForm(promo)}
-                        className="rounded border border-char-700/20 dark:border-cream/15 px-2 py-1 text-xs text-char-700 dark:text-cream/80 hover:border-ember-500 hover:text-ember-600 dark:hover:text-ember-400"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deletePromo(promo)}
-                        className="rounded px-2 py-1 text-xs text-ember-600 dark:text-ember-400 hover:bg-ember-50 dark:hover:bg-ember-500/15"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card padding="none">
+          <DataTable columns={columns} rows={promotions} getRowId={(p) => p.id} />
+        </Card>
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-          <form
-            onSubmit={handleSubmit}
-            className="my-8 w-full max-w-lg rounded-card bg-white dark:bg-char-900 p-6 shadow-xl"
-          >
-            <h2 className="mb-4 font-display text-lg font-semibold">
+        <Modal onClose={() => setShowForm(false)} maxWidth="lg">
+          <form onSubmit={handleSubmit}>
+            <h2 className="mb-4 font-display text-lg font-semibold text-char-900 dark:text-cream">
               {form.id ? "Edit promo" : "New promo"}
             </h2>
 
             {error && (
-              <div className="mb-3 rounded border border-ember-300 dark:border-ember-500/40 bg-ember-50 dark:bg-ember-500/15 px-3 py-2 text-sm text-ember-700 dark:text-ember-300">
+              <div className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-400">
                 {error}
               </div>
             )}
@@ -370,7 +365,7 @@ export default function PromosPage() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+              className="mb-3 h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
               placeholder="e.g. Wing Wednesday"
             />
 
@@ -381,7 +376,7 @@ export default function PromosPage() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={2}
-              className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+              className="mb-3 w-full rounded-md border border-char-700/20 px-3 py-2 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
               placeholder="Shown to staff on the promo list"
             />
 
@@ -395,7 +390,7 @@ export default function PromosPage() {
                   type="date"
                   value={form.start_date}
                   onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                  className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                  className="h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                 />
               </div>
               <div>
@@ -407,7 +402,7 @@ export default function PromosPage() {
                   type="date"
                   value={form.end_date}
                   onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                  className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                  className="h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                 />
               </div>
             </div>
@@ -424,10 +419,10 @@ export default function PromosPage() {
                   key={day}
                   type="button"
                   onClick={() => toggleDay(day)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  className={`h-9 rounded-full px-3.5 text-xs font-medium ${
                     form.valid_days.includes(day)
                       ? "bg-ember-500 text-white"
-                      : "bg-char-800/5 dark:bg-cream/5 text-char-700 dark:text-cream/80 hover:bg-char-800/10 dark:hover:bg-cream/10"
+                      : "bg-char-800/5 text-char-700 hover:bg-char-800/10 dark:bg-cream/5 dark:text-cream/80 dark:hover:bg-cream/10"
                   }`}
                 >
                   {day.slice(0, 3)}
@@ -440,10 +435,8 @@ export default function PromosPage() {
             </label>
             <select
               value={form.promo_type}
-              onChange={(e) =>
-                setForm({ ...form, promo_type: e.target.value as PromoType })
-              }
-              className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+              onChange={(e) => setForm({ ...form, promo_type: e.target.value as PromoType })}
+              className="mb-3 h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
             >
               {Object.entries(PROMO_TYPE_LABEL).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -468,7 +461,7 @@ export default function PromosPage() {
                   step="0.01"
                   value={form.discount_value}
                   onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
-                  className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                  className="mb-3 h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                   placeholder={form.promo_type === "discount_percentage" ? "20" : "50"}
                 />
 
@@ -478,10 +471,8 @@ export default function PromosPage() {
                 </label>
                 <select
                   value={form.discount_scope_product_id}
-                  onChange={(e) =>
-                    setForm({ ...form, discount_scope_product_id: e.target.value })
-                  }
-                  className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                  onChange={(e) => setForm({ ...form, discount_scope_product_id: e.target.value })}
+                  className="mb-3 h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                 >
                   <option value="">Whole order</option>
                   {products.map((p) => (
@@ -504,7 +495,7 @@ export default function PromosPage() {
                     required
                     value={form.buy_product_id}
                     onChange={(e) => setForm({ ...form, buy_product_id: e.target.value })}
-                    className="mb-2 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                    className="mb-2 h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                   >
                     <option value="">Select item…</option>
                     {products.map((p) => (
@@ -518,7 +509,7 @@ export default function PromosPage() {
                     min="1"
                     value={form.buy_quantity}
                     onChange={(e) => setForm({ ...form, buy_quantity: e.target.value })}
-                    className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+                    className="h-10 w-full rounded-md border border-char-700/20 px-3 text-sm focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                     placeholder="Qty"
                   />
                 </div>
@@ -530,7 +521,7 @@ export default function PromosPage() {
                     required
                     value={form.free_product_id}
                     onChange={(e) => setForm({ ...form, free_product_id: e.target.value })}
-                    className="mb-2 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                    className="mb-2 h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                   >
                     <option value="">Select item…</option>
                     {products.map((p) => (
@@ -544,7 +535,7 @@ export default function PromosPage() {
                     min="1"
                     value={form.free_quantity}
                     onChange={(e) => setForm({ ...form, free_quantity: e.target.value })}
-                    className="w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+                    className="h-10 w-full rounded-md border border-char-700/20 px-3 text-sm focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                     placeholder="Qty"
                   />
                 </div>
@@ -568,9 +559,9 @@ export default function PromosPage() {
                   value={bundleSearch}
                   onChange={(e) => setBundleSearch(e.target.value)}
                   placeholder="Search items…"
-                  className="mb-2 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
+                  className="mb-2 h-11 w-full rounded-md border border-char-700/20 px-3 text-sm focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                 />
-                <div className="mb-3 max-h-48 overflow-y-auto rounded-md border border-char-700/20 dark:border-cream/15 p-2">
+                <div className="mb-3 max-h-48 overflow-y-auto rounded-md border border-char-700/20 p-2 dark:border-cream/15">
                   {bundleSearchResults.length === 0 ? (
                     <p className="px-2 py-1.5 text-sm text-char-700/50 dark:text-cream/50">
                       No items match your search.
@@ -579,12 +570,13 @@ export default function PromosPage() {
                     bundleSearchResults.map((p) => (
                       <label
                         key={p.id}
-                        className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-char-800/5 dark:hover:bg-cream/5"
+                        className="flex min-h-10 items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-char-800/5 dark:hover:bg-cream/5"
                       >
                         <input
                           type="checkbox"
                           checked={form.bundle_product_ids.includes(p.id)}
                           onChange={() => toggleBundleProduct(p.id)}
+                          className="h-4 w-4 accent-ember-500"
                         />
                         <span className="flex-1 text-char-800 dark:text-cream/90">{p.name}</span>
                         <span className="text-char-700/50 dark:text-cream/50">{formatPeso(p.price)}</span>
@@ -603,7 +595,7 @@ export default function PromosPage() {
                   step="0.01"
                   value={form.bundle_price}
                   onChange={(e) => setForm({ ...form, bundle_price: e.target.value })}
-                  className="mb-3 w-full rounded-md border border-char-700/20 dark:border-cream/15 px-3 py-2 focus:border-ember-500 focus:outline-none"
+                  className="mb-3 h-11 w-full rounded-md border border-char-700/20 px-3 focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-800 dark:text-cream"
                   placeholder="e.g. 299"
                 />
               </>
@@ -614,28 +606,21 @@ export default function PromosPage() {
                 type="checkbox"
                 checked={form.is_active}
                 onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                className="h-4 w-4 accent-ember-500"
               />
               Active
             </label>
 
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="rounded-md px-4 py-2 text-char-700 dark:text-cream/80 hover:bg-char-800/5 dark:hover:bg-cream/5"
-              >
+              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
                 Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-md bg-ember-500 px-4 py-2 font-medium text-white hover:bg-ember-600 disabled:opacity-60"
-              >
+              </Button>
+              <Button type="submit" loading={saving}>
                 {saving ? "Saving…" : "Save promo"}
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

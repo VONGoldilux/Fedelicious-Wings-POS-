@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatPeso } from "@/lib/utils";
 import type { Product } from "@/lib/types";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Switch } from "@/components/ui/Switch";
+import { LoadingState, EmptyState } from "@/components/ui/EmptyState";
 
 export default function KitchenAvailabilityPage() {
   const supabase = createClient();
@@ -87,40 +94,42 @@ export default function KitchenAvailabilityPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-char-900 dark:text-cream">
-          Menu Availability
-        </h1>
-        <p className="text-sm text-char-700/70 dark:text-cream/70">
-          Mark items unavailable when you're out of stock — they'll
-          disappear from the cashier's ordering screen instantly.
-        </p>
-      </div>
+      <PageHeader
+        title="Menu Availability"
+        subtitle="Mark items unavailable when you're out of stock — they'll disappear from the cashier's ordering screen instantly."
+      />
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search menu items…"
-          className="w-full max-w-sm rounded-md border border-char-700/20 dark:border-cream/15 bg-white dark:bg-char-900 px-3 py-2 text-sm focus:border-ember-500 focus:outline-none"
-        />
-        <label className="flex items-center gap-2 text-sm text-char-700 dark:text-cream/80">
+        <div className="relative w-full max-w-sm">
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-char-700/40 dark:text-cream/40"
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search menu items…"
+            className="h-11 w-full rounded-md border border-char-700/20 bg-white pl-9 pr-3 text-sm focus:border-ember-500 focus:outline-none dark:border-cream/15 dark:bg-char-900 dark:text-cream"
+          />
+        </div>
+        <label className="flex h-11 items-center gap-2 text-sm text-char-700 dark:text-cream/80">
           <input
             type="checkbox"
             checked={unavailableOnly}
             onChange={(e) => setUnavailableOnly(e.target.checked)}
+            className="h-4 w-4 accent-ember-500"
           />
           Show unavailable only
         </label>
       </div>
 
       {loading ? (
-        <p className="text-char-700/60 dark:text-cream/60">Loading menu…</p>
+        <LoadingState label="Loading menu…" />
       ) : products.length === 0 ? (
-        <p className="text-char-700/60 dark:text-cream/60">No menu items yet.</p>
+        <EmptyState message="No menu items yet." />
       ) : byCategory.length === 0 ? (
-        <p className="text-char-700/60 dark:text-cream/60">No items match your search.</p>
+        <EmptyState message="No items match your search." />
       ) : (
         <div className="space-y-6">
           {byCategory.map(([category, items]) => (
@@ -130,69 +139,52 @@ export default function KitchenAvailabilityPage() {
                   {category}
                 </h2>
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={updatingCategory === category}
                     onClick={() => setCategoryAvailability(category, false)}
-                    disabled={updatingCategory === category}
-                    className="rounded border border-char-700/20 dark:border-cream/15 px-2.5 py-1 text-xs font-medium text-char-800 dark:text-cream/90 hover:bg-char-800/5 dark:hover:bg-cream/5 disabled:opacity-50"
                   >
-                    {updatingCategory === category
-                      ? "Saving…"
-                      : `Mark all ${category} unavailable`}
-                  </button>
-                  <button
-                    onClick={() => setCategoryAvailability(category, true)}
+                    {updatingCategory === category ? "Saving…" : `Mark all unavailable`}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
                     disabled={updatingCategory === category}
-                    className="rounded border border-char-700/20 dark:border-cream/15 px-2.5 py-1 text-xs font-medium text-char-800 dark:text-cream/90 hover:bg-char-800/5 dark:hover:bg-cream/5 disabled:opacity-50"
+                    onClick={() => setCategoryAvailability(category, true)}
                   >
                     Mark all available
-                  </button>
+                  </Button>
                 </div>
               </div>
-              <div className="overflow-hidden rounded-card border border-char-700/10 dark:border-cream/10 bg-white dark:bg-char-900 shadow-sm">
-                <table className="w-full text-left text-sm">
-                  <tbody className="divide-y divide-char-700/10 dark:divide-cream/10">
-                    {items.map((p) => (
-                      <tr key={p.id}>
-                        <td className="px-4 py-2.5">
-                          <p className="font-medium text-char-900 dark:text-cream">{p.name}</p>
-                          {p.description && (
-                            <p className="text-xs text-char-700/50 dark:text-cream/50 line-clamp-1">
-                              {p.description}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5 text-char-700/70 dark:text-cream/70">
-                          {formatPeso(p.price)}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                              p.is_available
-                                ? "bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400"
-                                : "bg-char-800/10 dark:bg-cream/10 text-char-700 dark:text-cream/80"
-                            }`}
-                          >
-                            {p.is_available ? "Available" : "Unavailable"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <button
-                            onClick={() => toggleAvailability(p)}
-                            disabled={updatingId === p.id}
-                            className="rounded border border-char-700/20 dark:border-cream/15 px-3 py-1.5 text-xs font-medium text-char-800 dark:text-cream/90 hover:bg-char-800/5 dark:hover:bg-cream/5 disabled:opacity-50"
-                          >
-                            {updatingId === p.id
-                              ? "Saving…"
-                              : p.is_available
-                              ? "Mark unavailable"
-                              : "Mark available"}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Card padding="none">
+                <ul className="divide-y divide-char-700/10 dark:divide-cream/10">
+                  {items.map((p) => (
+                    <li key={p.id} className="flex items-center gap-3 px-4 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-char-900 dark:text-cream">{p.name}</p>
+                        {p.description && (
+                          <p className="line-clamp-1 text-xs text-char-700/50 dark:text-cream/50">
+                            {p.description}
+                          </p>
+                        )}
+                      </div>
+                      <span className="hidden text-sm text-char-700/70 dark:text-cream/70 sm:inline">
+                        {formatPeso(p.price)}
+                      </span>
+                      <Badge color={p.is_available ? "success" : "neutral"}>
+                        {p.is_available ? "Available" : "Unavailable"}
+                      </Badge>
+                      <Switch
+                        checked={p.is_available}
+                        disabled={updatingId === p.id}
+                        onChange={() => toggleAvailability(p)}
+                        label={`Toggle availability for ${p.name}`}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </Card>
             </div>
           ))}
         </div>

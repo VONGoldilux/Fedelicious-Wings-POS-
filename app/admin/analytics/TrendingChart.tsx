@@ -10,13 +10,12 @@ import {
   Tooltip as RechartsTooltip,
   CartesianGrid,
 } from "recharts";
-import { Card, CardHeader, Title3, Text, Body1Strong, Caption1, tokens } from "@fluentui/react-components";
-import { ArrowTrendingRegular } from "@fluentui/react-icons";
+import { TrendingUp } from "lucide-react";
 import { useIsDarkMode } from "@/lib/use-dark-mode";
 import { GRANULARITY_OPTIONS, TREND_COLORS, type Granularity } from "./constants";
-import { SegmentedControl } from "@/components/fluent/SegmentedControl";
-import { useSharedStyles } from "@/components/fluent/styles";
-import { EmptyState, LoadingState } from "@/components/fluent/EmptyState";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { EmptyState, LoadingState } from "@/components/ui/EmptyState";
 
 export function TrendingChart({
   chartData,
@@ -31,7 +30,6 @@ export function TrendingChart({
   onGranularityChange: (g: Granularity) => void;
   loading: boolean;
 }) {
-  const styles = useSharedStyles();
   const isDark = useIsDarkMode();
   const gridColor = isDark ? "#463830" : "#e5decf";
   const axisColor = isDark ? "#c9bfae" : "#7a6a58";
@@ -58,27 +56,25 @@ export function TrendingChart({
   }, [chartData, topProductNames]);
 
   return (
-    <Card size="large" className={styles.card}>
-      <div className={styles.sectionHeaderRow}>
-        <CardHeader
-          image={<ArrowTrendingRegular fontSize={20} style={{ color: tokens.colorBrandForeground1 }} />}
-          header={<Title3>Trending items</Title3>}
-        />
+    <Card>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+        <CardHeader icon={<TrendingUp size={18} />} title="Trending items" className="!mb-0" />
         <SegmentedControl
           ariaLabel="Trend granularity"
           options={GRANULARITY_OPTIONS}
           value={granularity}
           onChange={onGranularityChange}
+          size="sm"
         />
       </div>
 
       {loading ? (
         <LoadingState />
       ) : chartData.length === 0 ? (
-        <EmptyState icon={ArrowTrendingRegular} message="No sales in this window yet." />
+        <EmptyState icon={<TrendingUp size={26} />} message="No sales in this window yet." />
       ) : (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: tokens.spacingHorizontalL }}>
-          <div style={{ flex: "3 1 480px", height: 320, minWidth: 0 }}>
+        <div className="flex flex-wrap gap-5">
+          <div className="min-w-0 flex-[3_1_480px]" style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
@@ -102,42 +98,21 @@ export function TrendingChart({
           </div>
 
           {/* Docked ranked panel — sits beside the chart instead of overlaying it. */}
-          <div
-            style={{
-              flex: "1 1 180px",
-              minWidth: 160,
-              borderLeft: `1px solid ${tokens.colorNeutralStroke2}`,
-              paddingLeft: tokens.spacingHorizontalL,
-              display: "flex",
-              flexDirection: "column",
-              gap: tokens.spacingVerticalS,
-            }}
-          >
-            <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>Top sellers this period</Caption1>
+          <div className="flex min-w-[160px] flex-[1_1_180px] flex-col gap-2 border-l border-char-700/10 pl-5 dark:border-cream/10">
+            <p className="text-xs text-char-700/50 dark:text-cream/50">Top sellers this period</p>
             {ranked.map((row, i) => (
-              <div key={row.name} style={{ display: "flex", alignItems: "center", gap: tokens.spacingHorizontalS }}>
+              <div key={row.name} className="flex items-center gap-2">
                 <span
                   aria-hidden
-                  style={{
-                    width: 18,
-                    height: 18,
-                    flexShrink: 0,
-                    borderRadius: 999,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: "#FFFFFF",
-                    backgroundColor: TREND_COLORS[i % TREND_COLORS.length],
-                  }}
+                  className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                  style={{ backgroundColor: TREND_COLORS[i % TREND_COLORS.length] }}
                 >
                   {i + 1}
                 </span>
-                <Text truncate style={{ minWidth: 0, flex: 1 }} title={row.name}>
+                <span className="min-w-0 flex-1 truncate text-sm text-char-800 dark:text-cream/90" title={row.name}>
                   {row.name}
-                </Text>
-                <Body1Strong style={{ flexShrink: 0 }}>{row.qty}×</Body1Strong>
+                </span>
+                <span className="shrink-0 font-semibold text-char-900 dark:text-cream">{row.qty}×</span>
               </div>
             ))}
           </div>
